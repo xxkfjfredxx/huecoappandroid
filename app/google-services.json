@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "795059173963",
+    "project_id": "hucoapp-ed50d",
+    "storage_bucket": "hucoapp-ed50d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:795059173963:android:e58565892619d5d28c6bce",
+        "android_client_info": {
+          "package_name": "com.fredrueda.huecoapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSB27jNrkhcb9hG6rsgDZ8Vo9f7srPR1M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
