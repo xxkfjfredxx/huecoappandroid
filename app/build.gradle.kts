@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.googleid)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
@@ -88,8 +89,20 @@ dependencies {
     implementation("com.google.firebase:firebase-messaging-ktx")
 
     implementation(libs.accompanist.navigation.animation)
-
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.accompanist.systemuicontroller)
+    implementation(libs.androidx.activity.ktx)
+    implementation(libs.androidx.activity.compose)
     implementation(libs.coil.svg)
+
+    // --- Google Sign-In ---
+    implementation(libs.play.services.auth)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    // --- Firebase Auth ---
+    implementation(libs.firebase.auth.ktx)
+    // --- Facebook Login ---
+    implementation(libs.facebook.android.sdk)
 
     // --- Testing ---
     testImplementation(libs.junit)

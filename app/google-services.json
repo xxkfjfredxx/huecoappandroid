@@ -12,7 +12,20 @@
           "package_name": "com.fredrueda.huecoapp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "795059173963-cqnttkvbisd2k69o681bemj8m106o0la.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fredrueda.huecoapp",
+            "certificate_hash": "9351a17d5e3fb9ca3db82a8f5f95cd60c33022a5"
+          }
+        },
+        {
+          "client_id": "795059173963-b952gr3hp9chqkn3p9cmg1dv2e06g1h6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCSB27jNrkhcb9hG6rsgDZ8Vo9f7srPR1M"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "795059173963-b952gr3hp9chqkn3p9cmg1dv2e06g1h6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
