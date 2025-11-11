@@ -18,6 +18,7 @@ import com.fredrueda.huecoapp.feature.auth.presentation.LoginScreen
 import com.fredrueda.huecoapp.feature.auth.presentation.ResetPasswordScreen
 import com.fredrueda.huecoapp.feature.auth.presentation.google.handleGoogleSignIn
 import com.fredrueda.huecoapp.feature.home.presentation.MainHomeScreen
+import com.fredrueda.huecoapp.feature.report.presentation.ReportScreen
 import com.fredrueda.huecoapp.ui.splash.SplashScreen
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import kotlinx.coroutines.launch
@@ -84,6 +85,10 @@ fun AppNavGraph(
             )
         }
 
+        composable("report") {
+            ReportScreen(onBack = { navController.popBackStack() })
+        }
+
         // 🏠 HOME con Drawer
         composable("home") {
             MainHomeScreen(
@@ -94,18 +99,9 @@ fun AppNavGraph(
                 },
                 onNavigateToMap = {
                     // 🔹 Navega al mapa global o al de creación de reporte
-                    navController.navigate("map")
+                    navController.navigate("report")
                 }
             )
-        }
-
-        composable("map") {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Pantalla del mapa", color = Color.Gray)
-            }
         }
 
         composable("profile") {

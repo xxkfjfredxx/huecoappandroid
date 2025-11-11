@@ -44,7 +44,7 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 @Preview(showBackground = true)
 @Composable
-fun MapScreen() {
+fun MapScreen( modifier: Modifier = Modifier) {
     val context = LocalContext.current
     var mapView by remember { mutableStateOf<MapView?>(null) }
     var hasLocationPermission by remember { mutableStateOf(false) }
@@ -66,7 +66,7 @@ fun MapScreen() {
         )
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize()) {
         val scope = rememberCoroutineScope()
 
         // In Compose Preview, the map will not be displayed and a placeholder will be shown.
