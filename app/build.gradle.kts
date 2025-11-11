@@ -94,6 +94,7 @@ dependencies {
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.coil.svg)
+    implementation(libs.osmdroid.android)
 
     // --- Google Sign-In ---
     implementation(libs.play.services.auth)
@@ -103,6 +104,9 @@ dependencies {
     implementation(libs.firebase.auth.ktx)
     // --- Facebook Login ---
     implementation(libs.facebook.android.sdk)
+
+    //Material Icons (Filled, Outlined, Rounded, TwoTone y Sharp)
+    implementation(libs.androidx.compose.material.icons.extended)
 
     // --- Testing ---
     testImplementation(libs.junit)
