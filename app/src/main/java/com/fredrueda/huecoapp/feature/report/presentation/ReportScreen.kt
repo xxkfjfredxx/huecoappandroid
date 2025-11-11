@@ -194,7 +194,7 @@ fun ReportScreen(onBack: () -> Unit) {
                                 post {
                                     userLocation = point
                                     controller.setCenter(point)
-                                    controller.setZoom(18.0)
+                                    controller.setZoom(22.0)
                                     marker.position = point
                                     marker.title = "Tu ubicación actual"
                                     invalidate()
@@ -226,7 +226,7 @@ fun ReportScreen(onBack: () -> Unit) {
                                 map.post {
                                     userLocation = point
                                     map.controller.setCenter(point)
-                                    map.controller.setZoom(18.0)
+                                    map.controller.setZoom(20.0)
                                     // mueve el primer Marker encontrado
                                     map.overlays.filterIsInstance<Marker>()
                                         .firstOrNull()?.let { m ->

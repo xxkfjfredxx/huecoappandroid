@@ -102,7 +102,7 @@ fun MapScreen( modifier: Modifier = Modifier) {
                         compassOverlay.enableCompass()
                         overlays.add(compassOverlay)
 
-                        controller.setZoom(15.0)
+                        controller.setZoom(18.0)
                         //controller.setCenter(GeoPoint(4.6097, -74.0817))
 
                         mapView = this
