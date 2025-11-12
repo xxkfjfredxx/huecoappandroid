@@ -6,18 +6,32 @@ import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -30,9 +44,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -64,6 +80,8 @@ fun ReportScreen(onBack: () -> Unit) {
     var userLocation by remember { mutableStateOf<GeoPoint?>(null) }
     var showSheet by remember { mutableStateOf(false) }
     var hasLocationPermission by remember { mutableStateOf(false) }
+    var showTooltip by remember { mutableStateOf(true) }
+    var isDraggingMarker by remember { mutableStateOf(false) } // 👈 NUEVO estado
 
     // --- Pide permisos de ubicación
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -75,12 +93,11 @@ fun ReportScreen(onBack: () -> Unit) {
     }
 
     LaunchedEffect(Unit) {
-        // Carga config de osmdroid
         Configuration.getInstance().load(
             context,
             androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
         )
-        // Lanza permisos si no están dados
+
         val fineGranted = ActivityCompat.checkSelfPermission(
             context, Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
@@ -116,149 +133,222 @@ fun ReportScreen(onBack: () -> Unit) {
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    if (userLocation == null) {
-                        Toast.makeText(
-                            context,
-                            "Ubicación no detectada todavía",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    } else {
-                        showSheet = true
-                    }
-                },
-                icon = { Icon(Icons.Default.Add, contentDescription = null, tint = Color.Black) },
-                text = { Text("Reportar hueco aquí") },
-                containerColor = Color(0xFFFFD000),
-                contentColor = Color.Black,
-                modifier = Modifier.navigationBarsPadding()
-            )
+            // 👇 FAB animado, se oculta mientras se arrastra el marcador
+            AnimatedVisibility(
+                visible = !isDraggingMarker,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        if (userLocation == null) {
+                            Toast.makeText(
+                                context,
+                                "Ubicación no detectada todavía",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            showSheet = true
+                        }
+                    },
+                    icon = {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = null,
+                            tint = Color.Black
+                        )
+                    },
+                    text = { Text("Reportar") },
+                    containerColor = Color(0xFFFFD000),
+                    contentColor = Color.Black,
+                    modifier = Modifier.navigationBarsPadding()
+                )
+            }
         }
     ) { innerPadding ->
 
-        AndroidView(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            factory = { ctx ->
-                MapView(ctx).apply {
-                    setTileSource(TileSourceFactory.MAPNIK)
-                    setMultiTouchControls(true)
-                    isClickable = true
-                    isTilesScaledToDpi = true
+        Box(Modifier.fillMaxSize()) {
+            // --- Mapa principal
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                factory = { ctx ->
+                    MapView(ctx).apply {
+                        setTileSource(TileSourceFactory.MAPNIK)
+                        setMultiTouchControls(true)
+                        isClickable = true
+                        isTilesScaledToDpi = true
 
-                    // Rotación y gestos
-                    overlays.add(RotationGestureOverlay(this).apply { isEnabled = true })
+                        // Rotación y gestos
+                        overlays.add(RotationGestureOverlay(this).apply { isEnabled = true })
 
-                    // Brújula
-                    overlays.add(
-                        CompassOverlay(
-                            ctx,
-                            InternalCompassOrientationProvider(ctx),
-                            this
-                        ).apply { enableCompass() }
-                    )
-                    // Centro “fallback” mientras llega el primer fix
-                    val fallback = GeoPoint(4.787316, -74.229235) // Bogotá (por decir)
-                    controller.setZoom(17.0)
-                    controller.setCenter(fallback)
+                        // Brújula
+                        overlays.add(
+                            CompassOverlay(
+                                ctx,
+                                InternalCompassOrientationProvider(ctx),
+                                this
+                            ).apply { enableCompass() }
+                        )
 
-                    // Marcador arrastrable (se reposiciona al tener ubicación real)
-                    val marker = Marker(this).apply {
-                        position = fallback
-                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                        title = "Ubicación del hueco"
-                        isDraggable = true
-                        icon = ContextCompat.getDrawable(ctx, R.drawable.logo_huecoapp)
-                        setOnMarkerDragListener(object : Marker.OnMarkerDragListener {
-                            override fun onMarkerDrag(marker: Marker?) {}
-                            override fun onMarkerDragEnd(marker: Marker?) {
-                                marker?.let { userLocation = it.position }
+                        // Centro temporal mientras llega ubicación real
+                        val fallback = GeoPoint(4.787316, -74.229235)
+                        controller.setZoom(17.0)
+                        controller.setCenter(fallback)
+
+                        // --- Marcador arrastrable
+                        val marker = Marker(this).apply {
+                            position = fallback
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            title = "Ubicación del hueco"
+                            isDraggable = true
+                            icon = ContextCompat.getDrawable(ctx, R.drawable.ic_huecoapp)
+
+                            setOnMarkerDragListener(object : Marker.OnMarkerDragListener {
+                                override fun onMarkerDrag(marker: Marker?) {
+                                    isDraggingMarker = true // 👈 mientras se arrastra
+                                }
+
+                                override fun onMarkerDragEnd(marker: Marker?) {
+                                    marker?.let { userLocation = it.position }
+                                    isDraggingMarker = false // 👈 al soltar vuelve visible FAB
+                                    //Toast.makeText(ctx, "Marcador ubicado. Este será el punto del reporte.", Toast.LENGTH_SHORT).show()
+                                }
+
+                                override fun onMarkerDragStart(marker: Marker?) {
+                                    isDraggingMarker = true
+                                }
+                            })
+                        }
+                        overlays.add(marker)
+
+                        // Capa de ubicación real
+                        if (hasLocationPermission) {
+                            val locationOverlay =
+                                MyLocationNewOverlay(GpsMyLocationProvider(ctx), this)
+                            locationOverlay.enableMyLocation()
+                            locationOverlay.enableFollowLocation()
+                            overlays.add(locationOverlay)
+
+                            locationOverlay.runOnFirstFix {
+                                val loc: GeoPoint? = locationOverlay.myLocation
+                                loc?.let { point ->
+                                    post {
+                                        userLocation = point
+                                        controller.setCenter(point)
+                                        controller.setZoom(22.0)
+                                        marker.position = point
+                                        marker.title = "Tu ubicación actual"
+                                        invalidate()
+                                    }
+                                }
                             }
-                            override fun onMarkerDragStart(marker: Marker?) {}
-                        })
+                        }
+
+                        mapView = this
                     }
-                    overlays.add(marker)
-
-                    // Capa de ubicación y “primer fix” -> centra y mueve el marcador ahí
+                },
+                update = { map ->
+                    mapView = map
                     if (hasLocationPermission) {
-                        val locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(ctx), this)
-                        locationOverlay.enableMyLocation()
-                        locationOverlay.enableFollowLocation()
-                        overlays.add(locationOverlay)
+                        val alreadyAdded = map.overlays.any { it is MyLocationNewOverlay }
+                        if (!alreadyAdded) {
+                            val locationOverlay =
+                                MyLocationNewOverlay(GpsMyLocationProvider(context), map)
+                            locationOverlay.enableMyLocation()
+                            locationOverlay.enableFollowLocation()
+                            map.overlays.add(locationOverlay)
 
-                        locationOverlay.runOnFirstFix {
-                            val loc: GeoPoint? = locationOverlay.myLocation
-                            loc?.let { point ->
-                                post {
-                                    userLocation = point
-                                    controller.setCenter(point)
-                                    controller.setZoom(22.0)
-                                    marker.position = point
-                                    marker.title = "Tu ubicación actual"
-                                    invalidate()
+                            locationOverlay.runOnFirstFix {
+                                val loc: GeoPoint? = locationOverlay.myLocation
+                                loc?.let { point ->
+                                    map.post {
+                                        userLocation = point
+                                        map.controller.setCenter(point)
+                                        map.controller.setZoom(20.0)
+                                        map.overlays.filterIsInstance<Marker>()
+                                            .firstOrNull()?.let { m ->
+                                                m.position = point
+                                            }
+                                        map.invalidate()
+                                    }
                                 }
                             }
                         }
                     }
-
-                    mapView = this
                 }
-            },
-            update = { map ->
-                mapView = map
+            )
 
-                // Si concedieron permisos después de crear el mapa, activa ubicación y centra
-                if (hasLocationPermission) {
-                    val alreadyAdded =
-                        map.overlays.any { it is MyLocationNewOverlay }
-                    if (!alreadyAdded) {
-                        val locationOverlay =
-                            MyLocationNewOverlay(GpsMyLocationProvider(context), map)
-                        locationOverlay.enableMyLocation()
-                        locationOverlay.enableFollowLocation()
-                        map.overlays.add(locationOverlay)
+            // --- Tooltip explicativo inicial
+            if (showTooltip && userLocation != null) {
+                isDraggingMarker = true
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color(0xAA000000))
+                        .clickable { showTooltip = false }
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .offset(y = (-80).dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Surface(
+                            color = Color.White,
+                            shape = RoundedCornerShape(12.dp),
+                            shadowElevation = 8.dp
+                        ) {
+                            Text(
+                                text = "Mantén presionado el marcador y arrástralo para ubicar el hueco",
+                                color = Color.Black,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
 
-                        locationOverlay.runOnFirstFix {
-                            val loc: GeoPoint? = locationOverlay.myLocation
-                            loc?.let { point ->
-                                map.post {
-                                    userLocation = point
-                                    map.controller.setCenter(point)
-                                    map.controller.setZoom(20.0)
-                                    // mueve el primer Marker encontrado
-                                    map.overlays.filterIsInstance<Marker>()
-                                        .firstOrNull()?.let { m ->
-                                            m.position = point
-                                        }
-                                    map.invalidate()
-                                }
-                            }
+                        Spacer(Modifier.height(12.dp))
+
+                        Button(
+                            onClick = {
+                                showTooltip = false
+                                isDraggingMarker = false
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFFD000),
+                                contentColor = Color.Black
+                            )
+                        ) {
+                            Text("OK, entendido")
                         }
                     }
                 }
             }
-        )
 
-        // Hoja inferior con el formulario
-        if (showSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showSheet = false },
-                sheetState = bottomSheetState,
-                containerColor = Color.White
-            ) {
-                ReportFormSheet(
-                    onDismiss = { showSheet = false },
-                    onSubmit = {
-                        Toast.makeText(
-                            context,
-                            "Reporte enviado con éxito",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        showSheet = false
-                    }
-                )
+            // --- Hoja inferior con el formulario
+            if (showSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showSheet = false },
+                    sheetState = bottomSheetState,
+                    containerColor = Color.White
+                ) {
+                    ReportFormSheet(
+                        onDismiss = { showSheet = false },
+                        onSubmit = { description, base64Image ->
+                            // 🔹 Aquí subes a Firebase Storage o Firestore
+                            if (base64Image != null) {
+                                val bytes = android.util.Base64.decode(
+                                    base64Image,
+                                    android.util.Base64.DEFAULT
+                                )
+                                // subir a Firebase Storage
+                            }
+                            Toast.makeText(context, "Reporte enviado con éxito", Toast.LENGTH_SHORT)
+                                .show()
+                            showSheet = false
+                        }
+                    )
+                }
             }
         }
     }

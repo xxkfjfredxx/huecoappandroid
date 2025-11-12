@@ -11,8 +11,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,20 +44,23 @@ fun HomeScreen(
             }
         }
 
-        FloatingActionButton(
+        ExtendedFloatingActionButton(
             onClick = onReportClick,
+            icon = {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Reportar hueco",
+                    tint = Color.Black
+                )
+            },
+            text = { Text("Reporta aquí") },
             containerColor = Color(0xFFFFD000),
+            contentColor = Color.Black,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
                 .navigationBarsPadding()
-        ) {
-            Icon(
-                Icons.Default.Add,
-                contentDescription = "Reportar hueco",
-                tint = Color.Black
-            )
-        }
+        )
     }
 }
 
