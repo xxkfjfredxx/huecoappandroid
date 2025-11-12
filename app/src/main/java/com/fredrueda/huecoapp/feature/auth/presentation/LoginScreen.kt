@@ -228,7 +228,6 @@ fun LoginScreen(
             Text("Crear cuenta", fontSize = 14.sp,color = Color.Blue)
         }
 
-
         Text("ó inicia sesión con", color = Color.Gray, fontSize = 14.sp)
 
         Spacer(modifier = Modifier.height(16.dp))
