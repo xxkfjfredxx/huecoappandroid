@@ -23,8 +23,11 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,6 +43,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.navigation.NavController
 import com.fredrueda.huecoapp.R
+import com.fredrueda.huecoapp.session.SessionManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -47,25 +51,43 @@ import kotlinx.coroutines.launch
 fun SplashScreen(navController: NavController) {
     val view = LocalView.current
     val window = (view.context as Activity).window
+    val controller = WindowCompat.getInsetsController(window, window.decorView)
+    val context = view.context
+    val session = remember { SessionManager(context) }
+    var animationEnded by remember { mutableStateOf(false) }
 
+    // 🔹 Ocultar barras del sistema SOLO en el Splash
     LaunchedEffect(Unit) {
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
-        // ✅ Ocultar barras SOLO en Splash
         controller.hide(
             WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.navigationBars()
         )
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        // Tu animación / delay
-        delay(2000)
-        // ✅ Mostrar barras otra vez ANTES de ir a Login
-        controller.show(
-            WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.navigationBars()
-        )
-        navController.navigate("login") {
-            popUpTo("splash") { inclusive = true }
+    }
+
+    // 🔹 Cuando termina la animación, mostramos barras y navegamos
+    LaunchedEffect(animationEnded) {
+        if (animationEnded) {
+            controller.show(
+                WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.navigationBars()
+            )
+
+            val access = session.getAccess()
+            delay(400) // 🔸 pequeño delay para suavizar la transición
+
+            if (!access.isNullOrBlank()) {
+                navController.navigate("home") {
+                    popUpTo("splash") { inclusive = true }
+                }
+            } else {
+                navController.navigate("login") {
+                    popUpTo("splash") { inclusive = true }
+                }
+            }
         }
     }
+
+    // 🔹 Pantalla visual
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -88,28 +110,33 @@ fun SplashScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(32.dp))
 
             // --- Texto animado ---
-            CrashTextAnimation(text = "HuecoApp")
+            CrashTextAnimation(
+                text = "HuecoApp",
+                onAnimationEnd = { animationEnded = true } // 🔹 sincroniza navegación
+            )
         }
     }
-
 }
 
 @Composable
-fun CrashTextAnimation(text: String) {
+fun CrashTextAnimation(
+    text: String,
+    onAnimationEnd: () -> Unit = {}
+) {
     val scope = rememberCoroutineScope()
     val offsetX = remember { Animatable(-500f) }
     val rotations = remember { text.map { Animatable(0f) } }
     val yOffsets = remember { text.map { Animatable(0f) } }
 
     LaunchedEffect(Unit) {
-        // Movimiento del texto hasta el centro
+        // 🔹 Animación de entrada
         offsetX.animateTo(
             targetValue = 0f,
             animationSpec = tween(durationMillis = 1200, easing = LinearOutSlowInEasing)
         )
 
-        // Animación de "colisión"
-        rotations.forEachIndexed { i, rot ->
+        // 🔹 Animaciones simultáneas (rebote de letras)
+        rotations.forEachIndexed { _, rot ->
             scope.launch {
                 rot.animateTo(
                     targetValue = (-30..30).random().toFloat(),
@@ -118,8 +145,7 @@ fun CrashTextAnimation(text: String) {
             }
         }
 
-        // Letras caen o se desacomodan un poco
-        yOffsets.forEachIndexed { i, offset ->
+        yOffsets.forEachIndexed { _, offset ->
             scope.launch {
                 offset.animateTo(
                     targetValue = (-10..10).random().toFloat(),
@@ -127,11 +153,13 @@ fun CrashTextAnimation(text: String) {
                 )
             }
         }
+
+        delay(1200)
+        onAnimationEnd() // 🔹 notifica al Splash que terminó
     }
 
     Row(
-        modifier = Modifier
-            .offset { IntOffset(offsetX.value.toInt(), 0) },
+        modifier = Modifier.offset { IntOffset(offsetX.value.toInt(), 0) },
         horizontalArrangement = Arrangement.Center
     ) {
         text.forEachIndexed { i, c ->
