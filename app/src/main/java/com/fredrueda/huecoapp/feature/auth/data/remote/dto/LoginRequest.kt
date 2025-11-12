@@ -1,4 +1,6 @@
 package com.fredrueda.huecoapp.feature.auth.data.remote.dto
 
-class LoginRequest {
-}
+data class LoginRequest(
+    val email: String,
+    val password: String
+)

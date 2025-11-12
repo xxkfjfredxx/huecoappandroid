@@ -51,7 +51,7 @@ fun rememberGoogleCredentialSignIn(
                     auth.signInWithCredential(firebaseCredential)
                         .addOnCompleteListener(activity) { task ->
                             if (task.isSuccessful) {
-                                onResult(true, auth.currentUser?.email)
+                                onResult(true, token)
                             } else {
                                 onResult(false, task.exception?.message)
                             }

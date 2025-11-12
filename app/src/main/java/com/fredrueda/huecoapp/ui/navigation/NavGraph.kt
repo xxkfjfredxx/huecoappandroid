@@ -7,21 +7,24 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.fredrueda.huecoapp.feature.auth.presentation.LoginScreen
 import com.fredrueda.huecoapp.feature.auth.presentation.ResetPasswordScreen
-import com.fredrueda.huecoapp.feature.auth.presentation.google.handleGoogleSignIn
 import com.fredrueda.huecoapp.feature.home.presentation.MainHomeScreen
 import com.fredrueda.huecoapp.feature.report.presentation.ReportScreen
+import com.fredrueda.huecoapp.session.SessionViewModel
 import com.fredrueda.huecoapp.ui.splash.SplashScreen
 import com.google.accompanist.navigation.animation.AnimatedNavHost
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -33,6 +36,20 @@ fun AppNavGraph(
     val navController = rememberNavController()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    // 🔹 SessionViewModel que observa el estado de sesión
+    val sessionViewModel: SessionViewModel = hiltViewModel()
+    val isSessionActive by sessionViewModel.isSessionActive.collectAsState()
+    val currentRoute = navController.currentBackStackEntry?.destination?.route
+
+    LaunchedEffect(isSessionActive, currentRoute) {
+        // Evita reaccionar mientras estás en el Splash
+        if (currentRoute != "splash" && isSessionActive == false) {
+            navController.navigate("login") {
+                popUpTo("home") { inclusive = true }
+            }
+        }
+    }
 
     AnimatedNavHost(
         navController = navController,
@@ -57,18 +74,11 @@ fun AppNavGraph(
                         popUpTo("login") { inclusive = true }
                     }
                 },
-                onGoogleLogin = {
-                    scope.launch {
-                        handleGoogleSignIn(context) { success ->
-                            if (success) {
-                                navController.navigate("home") {
-                                    popUpTo("login") { inclusive = true }
-                                }
-                            }
-                        }
+                onAuthSuccess = {
+                    navController.navigate("home") {
+                        popUpTo("login") { inclusive = true }
                     }
-                },
-                onFacebookLogin = { /* TODO */ }
+                }
             )
         }
 
@@ -85,25 +95,24 @@ fun AppNavGraph(
             )
         }
 
+        // 📍 REPORT
         composable("report") {
             ReportScreen(onBack = { navController.popBackStack() })
         }
 
-        // 🏠 HOME con Drawer
+        // 🏠 HOME
         composable("home") {
             MainHomeScreen(
                 onLogout = {
-                    navController.navigate("login") {
-                        popUpTo("home") { inclusive = true }
-                    }
+                    sessionViewModel.logout() // ✅ borra tokens → dispara redirección automática
                 },
                 onNavigateToMap = {
-                    // 🔹 Navega al mapa global o al de creación de reporte
                     navController.navigate("report")
                 }
             )
         }
 
+        // 👤 PROFILE
         composable("profile") {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -112,6 +121,5 @@ fun AppNavGraph(
                 Text("Perfil del usuario", color = Color.Gray)
             }
         }
-
     }
 }

@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">HuecoApp</string>
     <string name="default_web_client_id">795059173963-b952gr3hp9chqkn3p9cmg1dv2e06g1h6.apps.googleusercontent.com</string>
+    <string name="facebook_app_id">TU_FACEBOOK_APP_ID</string>
+    <string name="fb_login_protocol_scheme">fbTU_FACEBOOK_APP_ID</string>
+
 </resources>

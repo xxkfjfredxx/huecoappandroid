@@ -2,6 +2,7 @@ package com.fredrueda.huecoapp.feature.auth.presentation
 
 import android.app.Activity
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -33,10 +34,12 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.fredrueda.huecoapp.R
 import kotlinx.coroutines.delay
 
@@ -63,22 +67,35 @@ import kotlinx.coroutines.delay
 @Composable
 fun LoginScreen(
     onLoginClick: () -> Unit = {},
-    onGoogleLogin: () -> Unit = {},
-    onFacebookLogin: () -> Unit = {}
+    onAuthSuccess: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val activity = context as Activity
-
+    val viewModel: AuthViewModel = hiltViewModel()
+    val uiState by viewModel.state.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
     val googleSignIn = rememberGoogleCredentialSignIn(
         activity = activity,
         webClientId = "795059173963-b952gr3hp9chqkn3p9cmg1dv2e06g1h6.apps.googleusercontent.com"
-    ) { success, message ->
+    ) { success, idToken ->
         if (success) {
-            onLoginClick() // navega al home
+            viewModel.loginWithGoogle("$idToken")
         } else {
-            Log.e("LoginScreen", "Error al iniciar sesión: $message")
+            Log.e("LoginScreen", "Error al iniciar sesión: $idToken")
         }
     }
+/*
+    val facebookSignIn = rememberFacebookSignIn(
+        activity = activity
+    ) { success, token, message ->
+        if (success && token != null) {
+            viewModel.loginWithFacebook(token)
+        } else {
+            Log.e("LoginScreen", "Error Facebook: $message")
+        }
+    }
+
+ */
 
     // --- Configuración del carrusel infinito ---
     val items = listOf(
@@ -91,7 +108,7 @@ fun LoginScreen(
     val startPage = infiniteCount / 2 - (infiniteCount / 2) % items.size
     val pagerState = rememberPagerState(initialPage = startPage, pageCount = { infiniteCount })
 
-    // --- Autoplay estable ---
+    // 🔹 Autoplay del carrusel
     LaunchedEffect(pagerState) {
         while (true) {
             delay(3000)
@@ -105,8 +122,22 @@ fun LoginScreen(
         }
     }
 
+    // 🔹 Observa el estado de autenticación
+    LaunchedEffect(uiState.user) {
+        if (uiState.user != null) {
+            onAuthSuccess()
+        }
+    }
+
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val pagerHeight = screenHeight * 0.35f // 35% del alto total
+
 
     Column(
         modifier = Modifier
@@ -178,7 +209,13 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Button(
-            onClick = onLoginClick,
+            onClick = {
+                if (email.isNotBlank() && password.isNotBlank()) {
+                    viewModel.login(email.trim(), password.trim())
+                } else {
+                    Log.e("LoginScreen", "Campos vacíos")
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -201,7 +238,7 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             SocialButton(icon = R.drawable.google, text = "Google", onClick = googleSignIn)
-            SocialButton(icon = R.drawable.facebook, text = "Facebook", onClick = onFacebookLogin)
+            SocialButton(icon = R.drawable.facebook, text = "Facebook", onClick = googleSignIn)
         }
 
         Spacer(modifier = Modifier.height(22.dp))
