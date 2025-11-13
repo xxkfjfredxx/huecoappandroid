@@ -16,10 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.fredrueda.huecoapp.feature.auth.presentation.LoginScreen
+import com.fredrueda.huecoapp.feature.auth.presentation.RegisterScreen
 import com.fredrueda.huecoapp.feature.auth.presentation.ResetPasswordScreen
+import com.fredrueda.huecoapp.feature.auth.presentation.VerifyRegisterScreen
 import com.fredrueda.huecoapp.feature.home.presentation.MainHomeScreen
 import com.fredrueda.huecoapp.feature.report.presentation.ReportScreen
 import com.fredrueda.huecoapp.session.SessionViewModel
@@ -29,7 +33,7 @@ import com.google.accompanist.navigation.animation.AnimatedNavHost
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun AppNavGraph(
-    startDestination: String = "splash",
+    startDestination: String = Destinations.Splash.route,
     uid: String? = null,
     token: String? = null
 ) {
@@ -37,16 +41,16 @@ fun AppNavGraph(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // 🔹 SessionViewModel que observa el estado de sesión
+    // 🔹 SessionViewModel: Observa si la sesión está activa
     val sessionViewModel: SessionViewModel = hiltViewModel()
     val isSessionActive by sessionViewModel.isSessionActive.collectAsState()
     val currentRoute = navController.currentBackStackEntry?.destination?.route
 
+    // Redirección automática si la sesión expira
     LaunchedEffect(isSessionActive, currentRoute) {
-        // Evita reaccionar mientras estás en el Splash
-        if (currentRoute != "splash" && isSessionActive == false) {
-            navController.navigate("login") {
-                popUpTo("home") { inclusive = true }
+        if (currentRoute != Destinations.Splash.route && isSessionActive == false) {
+            navController.navigate(Destinations.Login.route) {
+                popUpTo(Destinations.Home.route) { inclusive = true }
             }
         }
     }
@@ -55,31 +59,56 @@ fun AppNavGraph(
         navController = navController,
         startDestination = startDestination,
         enterTransition = {
-            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(700))
+            slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.Left,
+                tween(700)
+            )
         },
         exitTransition = {
-            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(700))
+            slideOutOfContainer(
+                AnimatedContentTransitionScope.SlideDirection.Left,
+                tween(700)
+            )
         }
     ) {
         // 🟡 SPLASH
-        composable("splash") {
+        composable(Destinations.Splash.route) {
             SplashScreen(navController = navController)
         }
 
         // 🟢 LOGIN
-        composable("login") {
+        composable(Destinations.Login.route) {
             LoginScreen(
                 onLoginClick = {
-                    navController.navigate("home") {
-                        popUpTo("login") { inclusive = true }
+                    navController.navigate(Destinations.Home.route) {
+                        popUpTo(Destinations.Login.route) { inclusive = true }
                     }
                 },
                 onAuthSuccess = {
-                    navController.navigate("home") {
-                        popUpTo("login") { inclusive = true }
+                    navController.navigate(Destinations.Home.route) {
+                        popUpTo(Destinations.Login.route) { inclusive = true }
                     }
+                },
+                onRegisterClick = {
+                    navController.navigate(Destinations.Register.route)
                 }
             )
+        }
+
+        // 🟦 REGISTER
+        composable(Destinations.Register.route) {
+            RegisterScreen(navController)
+        }
+
+        // 🟪 VERIFY REGISTER
+        composable(
+            route = Destinations.VerifyRegister.route,
+            arguments = listOf(
+                navArgument("email") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val email = backStackEntry.arguments?.getString("email")!!
+            VerifyRegisterScreen(navController, email)
         }
 
         // 🔑 RESET PASSWORD
@@ -88,7 +117,7 @@ fun AppNavGraph(
                 uid = uid ?: "",
                 token = token ?: "",
                 onSuccess = {
-                    navController.navigate("login") {
+                    navController.navigate(Destinations.Login.route) {
                         popUpTo("reset_password") { inclusive = true }
                     }
                 }
@@ -101,10 +130,10 @@ fun AppNavGraph(
         }
 
         // 🏠 HOME
-        composable("home") {
+        composable(Destinations.Home.route) {
             MainHomeScreen(
                 onLogout = {
-                    sessionViewModel.logout() // ✅ borra tokens → dispara redirección automática
+                    sessionViewModel.logout()
                 },
                 onNavigateToMap = {
                     navController.navigate("report")
@@ -112,7 +141,7 @@ fun AppNavGraph(
             )
         }
 
-        // 👤 PROFILE
+        // 👤 PROFILE (placeholder)
         composable("profile") {
             Box(
                 modifier = Modifier.fillMaxSize(),

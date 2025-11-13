@@ -3,6 +3,9 @@ package com.fredrueda.huecoapp.feature.auth.data.repository
 import com.fredrueda.huecoapp.core.data.network.ApiResponse
 import com.fredrueda.huecoapp.feature.auth.data.remote.api.AuthApi
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.LoginRequest
+import com.fredrueda.huecoapp.feature.auth.data.remote.dto.RegisterRequest
+import com.fredrueda.huecoapp.feature.auth.data.remote.dto.RegisterResponse
+import com.fredrueda.huecoapp.feature.auth.data.remote.dto.RegisterVerifyRequest
 import com.fredrueda.huecoapp.feature.auth.domain.entity.AuthUser
 import com.fredrueda.huecoapp.feature.auth.domain.repository.AuthRepository
 import com.fredrueda.huecoapp.session.SessionManager
@@ -78,4 +81,25 @@ class AuthRepositoryImpl @Inject constructor(
     } catch (t: Throwable) {
         ApiResponse.NetworkError(t)
     }
+
+    override suspend fun register(request: RegisterRequest): RegisterResponse {
+        return api.register(request)
+    }
+
+    override suspend fun verifyRegister(request: RegisterVerifyRequest): ApiResponse<AuthUser> {
+        return try {
+            val resp = api.verifyRegister(request)
+            if (resp.isSuccessful) {
+                val body = resp.body()
+                // guardamos tokens igual que en login
+                session.saveTokens(body?.access, body?.refresh)
+                ApiResponse.Success(body?.user!!)
+            } else {
+                ApiResponse.HttpError(resp.code(), resp.errorBody()?.string())
+            }
+        } catch (t: Throwable) {
+            ApiResponse.NetworkError(t)
+        }
+    }
+
 }

@@ -67,7 +67,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun LoginScreen(
     onLoginClick: () -> Unit = {},
-    onAuthSuccess: () -> Unit = {}
+    onAuthSuccess: () -> Unit = {},
+    onRegisterClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val activity = context as Activity
@@ -224,8 +225,11 @@ fun LoginScreen(
             Text("Iniciar sesión", color = Color.White, fontWeight = FontWeight.Bold)
         }
 
-        TextButton(onClick = {}, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Text("Crear cuenta", fontSize = 14.sp,color = Color.Blue)
+        TextButton(
+            onClick = { onRegisterClick() },
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        ) {
+            Text("Crear cuenta", fontSize = 14.sp, color = Color.Blue)
         }
 
         Text("ó inicia sesión con", color = Color.Gray, fontSize = 14.sp)
