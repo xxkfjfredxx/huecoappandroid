@@ -14,27 +14,55 @@ import org.json.JSONObject
 import java.io.IOException
 
 /**
- * Authenticator: intercepta respuestas 401 y trata de renovar el token automáticamente.
- * Si no puede, limpia la sesión → usuario deberá volver a iniciar sesión.
+ * Autenticador automático de tokens JWT.
+ * 
+ * Se ejecuta cuando el servidor devuelve un código 401 (Unauthorized),
+ * lo que indica que el Access Token ha expirado.
+ * 
+ * Funcionalidades:
+ * - Intercepta respuestas 401 automáticamente
+ * - Intenta renovar el Access Token usando el Refresh Token
+ * - Si tiene éxito, reintenta la petición original con el nuevo token
+ * - Si falla, limpia la sesión y el usuario debe volver a iniciar sesión
+ * - Previene bucles infinitos de autenticación
+ * 
+ * @param session Gestor de sesión para acceder y guardar tokens
+ * @author Fred Rueda
+ * @version 1.0
  */
 class AuthAuthenticator @Inject constructor(
     private val session: SessionManager
 ) : Authenticator {
 
+    /**
+     * Autentica una petición que falló con 401.
+     * 
+     * Flujo:
+     * 1. Verifica que no sea un bucle infinito (máximo 2 intentos)
+     * 2. Obtiene el Refresh Token del SessionManager
+     * 3. Hace una petición directa al endpoint /refresh (sin interceptores)
+     * 4. Si obtiene un nuevo Access Token, lo guarda y reintenta la petición original
+     * 5. Si falla, limpia la sesión completa
+     * 
+     * @param route Ruta de la petición (no se usa)
+     * @param response Respuesta 401 del servidor
+     * @return Nueva petición con token actualizado, o null si falló
+     */
     override fun authenticate(route: Route?, response: Response): Request? {
-        // Evitar loops infinitos
+        // Evitar loops infinitos - si no tiene header Authorization, no intentar autenticar
         if (response.request.header("Authorization").isNullOrBlank()) return null
 
+        // Obtiene el Refresh Token
         val refresh = runBlocking { session.getRefresh() } ?: return null
 
-        // 🚫 Previene bucles de autenticación
+        // Previene bucles de autenticación (máximo 2 intentos)
         if (responseCount(response) >= 2) {
             runBlocking { session.clear() } // limpia sesión en caso de fallo repetido
             return null
         }
 
         return try {
-            // 🔹 Llamada sin interceptores (directa) para evitar recursion
+            // Llamada sin interceptores (directa) para evitar recursión
             val client = OkHttpClient()
             val body = JSONObject(mapOf("refresh" to refresh)).toString()
                 .toRequestBody("application/json".toMediaType())
@@ -43,10 +71,10 @@ class AuthAuthenticator @Inject constructor(
                 .post(body)
                 .build()
 
-            // 🔹 Ejecuta llamada de refresh
+            // Ejecuta llamada de refresh al servidor
             val newAccess = client.newCall(req).execute().use { resp ->
                 if (!resp.isSuccessful) {
-                    // ❌ refresh también falló → limpiamos sesión
+                    // Refresh también falló → limpiamos sesión
                     runBlocking { session.clear() }
                     null
                 } else {
@@ -55,20 +83,20 @@ class AuthAuthenticator @Inject constructor(
                 }
             } ?: return null
 
-            // 🔹 Guarda nuevo access token
+            // Guarda nuevo Access Token (mantiene el mismo Refresh Token)
             runBlocking { session.saveTokens(newAccess, refresh) }
 
-            // 🔹 Reintenta la petición original con nuevo token
+            // Reintenta la petición original con el nuevo token
             response.request.newBuilder()
                 .header("Authorization", "Bearer $newAccess")
                 .build()
 
         } catch (e: IOException) {
-            // ❌ Error de red → sesión expirada o sin conexión
+            // Error de red → sesión expirada o sin conexión
             runBlocking { session.clear() }
             null
         } catch (e: Exception) {
-            // ❌ Otro error no controlado → limpia sesión
+            // Otro error no controlado → limpia sesión
             runBlocking { session.clear() }
             null
         }

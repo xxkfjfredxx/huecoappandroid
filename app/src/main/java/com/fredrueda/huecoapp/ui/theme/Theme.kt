@@ -35,6 +35,10 @@ private val LightColorScheme = lightColorScheme(
     onSurface = Color.Black
 )
 
+/**
+ * Tema Material 3 de HuecoApp.
+ * Define paletas clara/oscura y tipografía.
+ */
 @Composable
 fun MyApplicationTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

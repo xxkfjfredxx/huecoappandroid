@@ -30,6 +30,10 @@ import com.fredrueda.huecoapp.session.SessionViewModel
 import com.fredrueda.huecoapp.ui.splash.SplashScreen
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 
+/**
+ * Grafo de navegación principal de la app.
+ * Define rutas, transiciones y redirecciones según estado de sesión.
+ */
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun AppNavGraph(

@@ -18,6 +18,11 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
+/**
+ * ViewModel de autenticación.
+ * Orquesta login (email, Google, Facebook), registro y verificación OTP,
+ * exponiendo estados para la UI via StateFlow y Compose.
+ */
 class AuthViewModel @Inject constructor(
     private val loginUC: LoginUseCase,
     private val loginGoogleUC: LoginWithGoogleUseCase,

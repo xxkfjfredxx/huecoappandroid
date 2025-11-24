@@ -30,6 +30,10 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
+/**
+ * Pantalla de restablecimiento de contraseña via deep link.
+ * Recibe uid y token del enlace y llama al backend.
+ */
 @Composable
 fun ResetPasswordScreen(uid: String, token: String, onSuccess: () -> Unit) {
     var password by remember { mutableStateOf("") }
@@ -90,6 +94,10 @@ fun ResetPasswordScreen(uid: String, token: String, onSuccess: () -> Unit) {
 }
 
 // 🔹 Llamada simple al backend REST
+/**
+ * Realiza la petición de cambio de contraseña.
+ * @return true si el backend responde 200.
+ */
 suspend fun resetPassword(uid: String, token: String, password: String): Boolean {
     return withContext(Dispatchers.IO) {
         try {

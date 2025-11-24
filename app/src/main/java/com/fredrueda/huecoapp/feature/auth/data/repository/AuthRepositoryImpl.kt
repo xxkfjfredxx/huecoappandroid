@@ -12,6 +12,10 @@ import com.fredrueda.huecoapp.session.SessionManager
 import retrofit2.HttpException
 import javax.inject.Inject
 
+/**
+ * Implementación del repositorio de autenticación.
+ * Usa Retrofit para llamar al backend y SessionManager para persistir tokens.
+ */
 class AuthRepositoryImpl @Inject constructor(
     private val api: AuthApi,
     private val session: SessionManager
