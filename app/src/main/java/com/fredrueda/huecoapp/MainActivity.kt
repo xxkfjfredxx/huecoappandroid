@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.fredrueda.huecoapp.ui.navigation.AppNavGraph
@@ -24,6 +25,7 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private var latestIntent = mutableStateOf<Intent?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,11 +34,13 @@ class MainActivity : ComponentActivity() {
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.isAppearanceLightStatusBars = false
         controller.isAppearanceLightNavigationBars = false
+        latestIntent.value = intent
 
         setContent {
             MyApplicationTheme {
                 AppNavGraph(
-                    startDestination = Destinations.Splash.route
+                    startDestination = Destinations.Splash.route,
+                    intent = latestIntent.value
                 )
             }
         }
@@ -45,6 +49,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        // NO procesar deep link aquí.
+        latestIntent.value = intent
+        // La recomposición hará que el NavHost maneje el deep link
     }
 }

@@ -54,6 +54,12 @@ fun AppNavGraph(
     val hasDeepLink = intent?.data?.scheme == "huecoapp" &&
                      intent.data?.host == "reset-password"
 
+    LaunchedEffect(intent) {
+        if (intent?.action == Intent.ACTION_VIEW) {
+            navController.handleDeepLink(intent)
+        }
+    }
+
     LaunchedEffect(isSessionActive, currentRoute) {
         if (currentRoute != Destinations.Splash.route &&
             !currentRoute.orEmpty().startsWith("reset-password") &&
@@ -142,9 +148,11 @@ fun AppNavGraph(
                 uid = uidArg,
                 token = tokenArg,
                 onSuccess = {
-                    navController.navigate(Destinations.Login.route) {
-                        popUpTo("reset-password") { inclusive = true }
-                    }
+                    sessionViewModel.logout()
+                    navController.popBackStack(Destinations.Splash.route, false)
+                },
+                onBack = {
+                    navController.popBackStack(Destinations.Splash.route, false)
                 }
             )
         }

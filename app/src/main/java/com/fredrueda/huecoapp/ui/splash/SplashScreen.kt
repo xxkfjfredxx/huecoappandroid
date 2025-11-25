@@ -77,8 +77,13 @@ fun SplashScreen(
 
             delay(400) // 🔸 pequeño delay para suavizar la transición
 
-            // 🔹 Si hay deeplink, no hacemos nada. NavController manejará la navegación automáticamente
-            if (hasDeepLink) {
+            // 🔹 Solo bloquear navegación en cold start por deeplink
+            val isDeepLinkInBackStack = try {
+                navController.getBackStackEntry("reset-password?uid={uid}&token={token}")
+                true
+            } catch (_: Exception) { false }
+            val shouldHoldForDeepLink = hasDeepLink && navController.previousBackStackEntry == null && isDeepLinkInBackStack
+            if (shouldHoldForDeepLink) {
                 return@LaunchedEffect
             }
 

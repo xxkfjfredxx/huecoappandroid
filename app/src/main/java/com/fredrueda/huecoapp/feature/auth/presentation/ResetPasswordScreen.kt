@@ -1,5 +1,6 @@
 package com.fredrueda.huecoapp.feature.auth.presentation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -35,12 +36,13 @@ import java.net.URL
  * Recibe uid y token del enlace y llama al backend.
  */
 @Composable
-fun ResetPasswordScreen(uid: String, token: String, onSuccess: () -> Unit) {
+fun ResetPasswordScreen(uid: String, token: String, onSuccess: () -> Unit, onBack: () -> Unit = {}) {
     var password by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    BackHandler { onBack() }
 
     Column(
         modifier = Modifier
