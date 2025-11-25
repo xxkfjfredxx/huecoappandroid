@@ -1,5 +1,6 @@
 package com.fredrueda.huecoapp.feature.auth.data.remote.api
 
+import com.fredrueda.huecoapp.feature.auth.data.remote.dto.ForgotPasswordRequest
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.LoginRequest
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.LoginResponse
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.RegisterRequest
@@ -92,6 +93,14 @@ interface AuthApi {
      */
     @POST("api/auth/register")
     suspend fun register(@Body body: RegisterRequest): RegisterResponse
+
+    /**
+     * Envía correo con enlace para restablecer contraseña.
+     *
+     * Backend: path("password/forgot/", PasswordForgotView.as_view(), ...)
+     */
+    @POST("password/forgot/")
+    suspend fun forgotPassword(@Body body: ForgotPasswordRequest): RegisterResponse
 
     /**
      * Verifica el código OTP del registro.

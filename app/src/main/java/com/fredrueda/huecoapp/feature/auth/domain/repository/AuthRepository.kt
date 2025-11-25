@@ -1,6 +1,7 @@
 package com.fredrueda.huecoapp.feature.auth.domain.repository
 
 import com.fredrueda.huecoapp.core.data.network.ApiResponse
+import com.fredrueda.huecoapp.feature.auth.data.remote.dto.ForgotPasswordRequest
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.RegisterRequest
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.RegisterResponse
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.RegisterVerifyRequest
@@ -80,4 +81,12 @@ interface AuthRepository {
      * @return ApiResponse con tokens de autenticación o error
      */
     suspend fun verifyRegister(request: RegisterVerifyRequest): ApiResponse<AuthUser>
+
+    /**
+     * Envía el correo de recuperación de contraseña.
+     *
+     * @param request Contiene el email del usuario.
+     * @return RegisterResponse con el detail del backend.
+     */
+    suspend fun forgotPassword(request: ForgotPasswordRequest): RegisterResponse
 }

@@ -1,5 +1,6 @@
 package com.fredrueda.huecoapp.ui.navigation
 
+import android.content.Intent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
@@ -20,6 +21,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
+import com.fredrueda.huecoapp.feature.auth.presentation.ForgotPasswordScreen
 import com.fredrueda.huecoapp.feature.auth.presentation.LoginScreen
 import com.fredrueda.huecoapp.feature.auth.presentation.RegisterScreen
 import com.fredrueda.huecoapp.feature.auth.presentation.ResetPasswordScreen
@@ -30,29 +33,31 @@ import com.fredrueda.huecoapp.session.SessionViewModel
 import com.fredrueda.huecoapp.ui.splash.SplashScreen
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 
-/**
- * Grafo de navegación principal de la app.
- * Define rutas, transiciones y redirecciones según estado de sesión.
- */
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun AppNavGraph(
     startDestination: String = Destinations.Splash.route,
     uid: String? = null,
-    token: String? = null
+    token: String? = null,
+    intent: Intent? = null
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // 🔹 SessionViewModel: Observa si la sesión está activa
+    // Session
     val sessionViewModel: SessionViewModel = hiltViewModel()
     val isSessionActive by sessionViewModel.isSessionActive.collectAsState()
     val currentRoute = navController.currentBackStackEntry?.destination?.route
 
-    // Redirección automática si la sesión expira
+    // 🔹 Detectar si hay un deeplink de reset-password
+    val hasDeepLink = intent?.data?.scheme == "huecoapp" &&
+                     intent.data?.host == "reset-password"
+
     LaunchedEffect(isSessionActive, currentRoute) {
-        if (currentRoute != Destinations.Splash.route && isSessionActive == false) {
+        if (currentRoute != Destinations.Splash.route &&
+            !currentRoute.orEmpty().startsWith("reset-password") &&
+            isSessionActive == false) {
             navController.navigate(Destinations.Login.route) {
                 popUpTo(Destinations.Home.route) { inclusive = true }
             }
@@ -75,12 +80,14 @@ fun AppNavGraph(
             )
         }
     ) {
-        // 🟡 SPLASH
+
         composable(Destinations.Splash.route) {
-            SplashScreen(navController = navController)
+            SplashScreen(
+                navController = navController,
+                hasDeepLink = hasDeepLink
+            )
         }
 
-        // 🟢 LOGIN
         composable(Destinations.Login.route) {
             LoginScreen(
                 onLoginClick = {
@@ -95,16 +102,17 @@ fun AppNavGraph(
                 },
                 onRegisterClick = {
                     navController.navigate(Destinations.Register.route)
+                },
+                onForgotPasswordClick = {
+                    navController.navigate("forgot_password")
                 }
             )
         }
 
-        // 🟦 REGISTER
         composable(Destinations.Register.route) {
             RegisterScreen(navController)
         }
 
-        // 🟪 VERIFY REGISTER
         composable(
             route = Destinations.VerifyRegister.route,
             arguments = listOf(
@@ -115,37 +123,51 @@ fun AppNavGraph(
             VerifyRegisterScreen(navController, email)
         }
 
-        // 🔑 RESET PASSWORD
-        composable("reset_password") {
+        composable(
+            route = "reset-password?uid={uid}&token={token}",
+            arguments = listOf(
+                navArgument("uid") { defaultValue = "" },
+                navArgument("token") { defaultValue = "" }
+            ),
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = "huecoapp://reset-password?uid={uid}&token={token}"
+                }
+            )
+        ) { backStackEntry ->
+            val uidArg = backStackEntry.arguments?.getString("uid") ?: ""
+            val tokenArg = backStackEntry.arguments?.getString("token") ?: ""
+
             ResetPasswordScreen(
-                uid = uid ?: "",
-                token = token ?: "",
+                uid = uidArg,
+                token = tokenArg,
                 onSuccess = {
                     navController.navigate(Destinations.Login.route) {
-                        popUpTo("reset_password") { inclusive = true }
+                        popUpTo("reset-password") { inclusive = true }
                     }
                 }
             )
         }
 
-        // 📍 REPORT
+        composable("forgot_password") {
+            ForgotPasswordScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
         composable("report") {
             ReportScreen(onBack = { navController.popBackStack() })
         }
 
-        // 🏠 HOME
         composable(Destinations.Home.route) {
             MainHomeScreen(
-                onLogout = {
-                    sessionViewModel.logout()
-                },
+                onLogout = { sessionViewModel.logout() },
                 onNavigateToMap = {
                     navController.navigate("report")
                 }
             )
         }
 
-        // 👤 PROFILE (placeholder)
         composable("profile") {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -155,4 +177,5 @@ fun AppNavGraph(
             }
         }
     }
+
 }

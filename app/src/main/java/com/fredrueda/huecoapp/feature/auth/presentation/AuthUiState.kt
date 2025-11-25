@@ -57,3 +57,16 @@ data class VerifyRegisterState(
     val isVerified: Boolean = false,
     val error: String? = null
 )
+
+/**
+ * Estado de la UI para el flujo de "Olvidé mi contraseña".
+ *
+ * @property isLoading Indica si se está enviando el correo
+ * @property message Mensaje de éxito del backend (detail)
+ * @property error Mensaje de error (null si no hay error)
+ */
+data class ForgotPasswordState(
+    val isLoading: Boolean = false,
+    val message: String? = null,
+    val error: String? = null
+)

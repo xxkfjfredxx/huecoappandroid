@@ -20,7 +20,7 @@ object AppConstants {
      * - Dispositivo físico: usar la IP local de tu PC (ej: "http://192.168.1.7:8000/")
      * - Producción: usar HTTPS con dominio real
      */
-    const val BASE_URL = "http://192.168.1.7:8000/"
+    const val BASE_URL = "http://192.168.1.3:8000/"
     
     // ========== ENDPOINTS DEL API ==========
     

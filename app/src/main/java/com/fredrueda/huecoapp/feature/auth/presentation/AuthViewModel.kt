@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fredrueda.huecoapp.core.data.network.ApiResponse
+import com.fredrueda.huecoapp.feature.auth.domain.usecase.ForgotPasswordUseCase
 import com.fredrueda.huecoapp.feature.auth.domain.usecase.LoginUseCase
 import com.fredrueda.huecoapp.feature.auth.domain.usecase.LoginWithFacebookUseCase
 import com.fredrueda.huecoapp.feature.auth.domain.usecase.LoginWithGoogleUseCase
@@ -28,11 +29,14 @@ class AuthViewModel @Inject constructor(
     private val loginGoogleUC: LoginWithGoogleUseCase,
     private val loginFacebookUC: LoginWithFacebookUseCase,
     private val registerUseCase: RegisterUseCase,
-    private val verifyRegisterUseCase: VerifyRegisterUseCase
+    private val verifyRegisterUseCase: VerifyRegisterUseCase,
+    private val forgotPasswordUseCase: ForgotPasswordUseCase
 ): ViewModel() {
     var registerState by mutableStateOf(RegisterState())
         private set
 
+    var forgotPasswordState by mutableStateOf(ForgotPasswordState())
+        private set
     var verifyRegisterState by mutableStateOf(VerifyRegisterState())
         private set
     private val _state = MutableStateFlow(AuthUiState())
@@ -127,6 +131,31 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
+
+    fun forgotPassword(email: String) {
+        viewModelScope.launch {
+            forgotPasswordState = forgotPasswordState.copy(
+                isLoading = true,
+                error = null,
+                message = null
+            )
+
+            try {
+                val result = forgotPasswordUseCase(email)
+                forgotPasswordState = forgotPasswordState.copy(
+                    isLoading = false,
+                    message = result.detail,
+                    error = null
+                )
+            } catch (e: Exception) {
+                forgotPasswordState = forgotPasswordState.copy(
+                    isLoading = false,
+                    error = e.message ?: "Error al enviar el correo de recuperación"
+                )
+            }
+        }
+    }
+
 
 
 }

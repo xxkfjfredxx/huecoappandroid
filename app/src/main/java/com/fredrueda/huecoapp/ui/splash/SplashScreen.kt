@@ -48,7 +48,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-fun SplashScreen(navController: NavController) {
+fun SplashScreen(
+    navController: NavController,
+    hasDeepLink: Boolean = false
+) {
     val view = LocalView.current
     val window = (view.context as Activity).window
     val controller = WindowCompat.getInsetsController(window, window.decorView)
@@ -72,8 +75,15 @@ fun SplashScreen(navController: NavController) {
                 WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.navigationBars()
             )
 
-            val access = session.getAccess()
             delay(400) // 🔸 pequeño delay para suavizar la transición
+
+            // 🔹 Si hay deeplink, no hacemos nada. NavController manejará la navegación automáticamente
+            if (hasDeepLink) {
+                return@LaunchedEffect
+            }
+
+            // 🔹 Flujo normal: verificar sesión
+            val access = session.getAccess()
 
             if (!access.isNullOrBlank()) {
                 navController.navigate("home") {

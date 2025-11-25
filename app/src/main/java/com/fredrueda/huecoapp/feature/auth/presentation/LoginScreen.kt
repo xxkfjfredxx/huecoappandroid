@@ -72,7 +72,8 @@ import kotlinx.coroutines.delay
 fun LoginScreen(
     onLoginClick: () -> Unit = {},
     onAuthSuccess: () -> Unit = {},
-    onRegisterClick: () -> Unit = {}
+    onRegisterClick: () -> Unit = {},
+    onForgotPasswordClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val activity = context as Activity
@@ -185,8 +186,11 @@ fun LoginScreen(
             isLast = true
         )
 
-        TextButton(onClick = {}, modifier = Modifier.align(Alignment.End)) {
-            Text("Forgot Password?", fontSize = 14.sp)
+        TextButton(
+            onClick = { onForgotPasswordClick() },
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text("Olvido su contraseña?", fontSize = 14.sp)
         }
 
         ModernButton(

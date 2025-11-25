@@ -2,6 +2,7 @@ package com.fredrueda.huecoapp.feature.auth.data.repository
 
 import com.fredrueda.huecoapp.core.data.network.ApiResponse
 import com.fredrueda.huecoapp.feature.auth.data.remote.api.AuthApi
+import com.fredrueda.huecoapp.feature.auth.data.remote.dto.ForgotPasswordRequest
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.LoginRequest
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.RegisterRequest
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.RegisterResponse
@@ -104,6 +105,11 @@ class AuthRepositoryImpl @Inject constructor(
         } catch (t: Throwable) {
             ApiResponse.NetworkError(t)
         }
+    }
+
+    override suspend fun forgotPassword(request: ForgotPasswordRequest): RegisterResponse {
+        // Misma filosofía que register: delega directo al API
+        return api.forgotPassword(request)
     }
 
 }
