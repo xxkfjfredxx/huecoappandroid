@@ -89,4 +89,7 @@ interface AuthRepository {
      * @return RegisterResponse con el detail del backend.
      */
     suspend fun forgotPassword(request: ForgotPasswordRequest): RegisterResponse
+
+    suspend fun resetPassword(uid: String, token: String, password: String): RegisterResponse
+
 }

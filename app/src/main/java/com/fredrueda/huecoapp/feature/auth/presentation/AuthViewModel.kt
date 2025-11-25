@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fredrueda.huecoapp.core.data.network.ApiResponse
+import com.fredrueda.huecoapp.feature.auth.domain.use_case.ResetPasswordUseCase
 import com.fredrueda.huecoapp.feature.auth.domain.usecase.ForgotPasswordUseCase
 import com.fredrueda.huecoapp.feature.auth.domain.usecase.LoginUseCase
 import com.fredrueda.huecoapp.feature.auth.domain.usecase.LoginWithFacebookUseCase
@@ -30,11 +31,13 @@ class AuthViewModel @Inject constructor(
     private val loginFacebookUC: LoginWithFacebookUseCase,
     private val registerUseCase: RegisterUseCase,
     private val verifyRegisterUseCase: VerifyRegisterUseCase,
-    private val forgotPasswordUseCase: ForgotPasswordUseCase
+    private val forgotPasswordUseCase: ForgotPasswordUseCase,
+    private val resetPasswordUseCase: ResetPasswordUseCase,
 ): ViewModel() {
     var registerState by mutableStateOf(RegisterState())
         private set
-
+    var resetPasswordState by mutableStateOf(ResetPasswordState())
+        private set
     var forgotPasswordState by mutableStateOf(ForgotPasswordState())
         private set
     var verifyRegisterState by mutableStateOf(VerifyRegisterState())
@@ -156,6 +159,34 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun resetPassword(uid: String, token: String, newPassword: String) {
+        viewModelScope.launch {
+            // Estado inicial: cargando, limpiamos error anterior
+            resetPasswordState = resetPasswordState.copy(
+                isLoading = true,
+                error = null,
+                message = null,
+                isSuccess = false
+            )
+
+            try {
+                val result = resetPasswordUseCase(uid, token, newPassword)
+                    resetPasswordState = resetPasswordState.copy(
+                        isLoading = false,
+                        isSuccess = true,
+                        message = result.detail,
+                        error = null
+                    )
+
+            } catch (e: Exception) {
+                resetPasswordState = resetPasswordState.copy(
+                    isLoading = false,
+                    isSuccess = false,
+                    error = e.message ?: "Error al cambiar la contraseña"
+                )
+            }
+        }
+    }
 
 
 }

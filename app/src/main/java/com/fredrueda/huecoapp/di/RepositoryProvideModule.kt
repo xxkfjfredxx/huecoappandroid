@@ -1,6 +1,7 @@
 package com.fredrueda.huecoapp.di
 
 import com.fredrueda.huecoapp.feature.auth.domain.repository.AuthRepository
+import com.fredrueda.huecoapp.feature.auth.domain.use_case.ResetPasswordUseCase
 import com.fredrueda.huecoapp.feature.auth.domain.usecase.RegisterUseCase
 import com.fredrueda.huecoapp.feature.auth.domain.usecase.VerifyRegisterUseCase
 import dagger.Module
@@ -48,4 +49,10 @@ object RepositoryProvideModule {
     fun provideVerifyRegisterUseCase(
         repository: AuthRepository
     ): VerifyRegisterUseCase = VerifyRegisterUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideResetPasswordUseCase(
+        repository: AuthRepository
+    ): ResetPasswordUseCase = ResetPasswordUseCase(repository)
 }

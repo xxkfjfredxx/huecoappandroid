@@ -7,6 +7,7 @@ import com.fredrueda.huecoapp.feature.auth.data.remote.dto.LoginRequest
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.RegisterRequest
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.RegisterResponse
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.RegisterVerifyRequest
+import com.fredrueda.huecoapp.feature.auth.data.remote.dto.ResetPasswordRequest
 import com.fredrueda.huecoapp.feature.auth.domain.entity.AuthUser
 import com.fredrueda.huecoapp.feature.auth.domain.repository.AuthRepository
 import com.fredrueda.huecoapp.session.SessionManager
@@ -110,6 +111,11 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun forgotPassword(request: ForgotPasswordRequest): RegisterResponse {
         // Misma filosofía que register: delega directo al API
         return api.forgotPassword(request)
+    }
+
+    override suspend fun resetPassword(uid: String, token: String, password: String): RegisterResponse {
+            val body = ResetPasswordRequest(uid, token, password)
+            return api.resetPassword(body)
     }
 
 }

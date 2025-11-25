@@ -6,6 +6,7 @@ import com.fredrueda.huecoapp.feature.auth.data.remote.dto.LoginResponse
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.RegisterRequest
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.RegisterResponse
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.RegisterVerifyRequest
+import com.fredrueda.huecoapp.feature.auth.data.remote.dto.ResetPasswordRequest
 import com.fredrueda.huecoapp.feature.auth.data.remote.dto.TokenResponse
 import com.fredrueda.huecoapp.feature.auth.domain.entity.AuthUser
 import retrofit2.Response
@@ -110,4 +111,9 @@ interface AuthApi {
      */
     @POST("api/auth/register/verify")
     suspend fun verifyRegister(@Body body: RegisterVerifyRequest): Response<TokenResponse>
+
+    @POST("password/reset/")
+    suspend fun resetPassword(
+        @Body body: ResetPasswordRequest
+    ): RegisterResponse
 }

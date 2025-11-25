@@ -132,18 +132,18 @@ fun AppNavGraph(
         composable(
             route = "reset-password?uid={uid}&token={token}",
             arguments = listOf(
-                navArgument("uid") { defaultValue = "" },
-                navArgument("token") { defaultValue = "" }
+                navArgument("uid") { defaultValue = "" }
             ),
             deepLinks = listOf(
                 navDeepLink {
-                    uriPattern = "huecoapp://reset-password?uid={uid}&token={token}"
+                    uriPattern = "huecoapp://reset-password?data={data}"
                 }
             )
         ) { backStackEntry ->
-            val uidArg = backStackEntry.arguments?.getString("uid") ?: ""
-            val tokenArg = backStackEntry.arguments?.getString("token") ?: ""
-
+            val data = backStackEntry.arguments?.getString("data") ?: ""
+            val parts = data.split("__SEP__")
+            val uidArg = parts.getOrNull(0) ?: ""
+            val tokenArg = parts.getOrNull(1) ?: ""
             ResetPasswordScreen(
                 uid = uidArg,
                 token = tokenArg,

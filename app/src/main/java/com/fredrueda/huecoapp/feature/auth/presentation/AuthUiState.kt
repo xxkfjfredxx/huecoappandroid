@@ -70,3 +70,10 @@ data class ForgotPasswordState(
     val message: String? = null,
     val error: String? = null
 )
+
+data class ResetPasswordState(
+    val isLoading: Boolean = false,
+    val message: String? = null,
+    val error: String? = null,
+    val isSuccess: Boolean = false
+)

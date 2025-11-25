@@ -47,7 +47,8 @@
                 <!-- ejemplo: huecoapp://reset-password?uid=123&token=abc -->
                 <data
                     android:scheme="huecoapp"
-                    android:host="reset-password" />
+                    android:host="reset-password"
+                    android:pathPattern=".*" />
             </intent-filter>
 
         </activity>
