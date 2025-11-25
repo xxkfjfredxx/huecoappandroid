@@ -14,6 +14,10 @@ import com.facebook.login.LoginResult
 import com.google.firebase.auth.FacebookAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 
+/**
+ * Launcher de Facebook Login integrado con FirebaseAuth.
+ * Devuelve un lambda para iniciar el login y reporta éxito con onResult.
+ */
 @Composable
 fun rememberFacebookLoginLauncher(
     activity: Activity,

@@ -12,6 +12,12 @@ import com.facebook.FacebookException
 import com.facebook.login.LoginManager
 import com.facebook.login.LoginResult
 
+/**
+ * Helper de Facebook Login para Compose.
+ * Registra callbacks y devuelve un lambda para iniciar el flujo.
+ * @param activity Activity anfitriona
+ * @param onResult Callback con éxito, token y mensaje
+ */
 @Composable
 fun rememberFacebookSignIn(
     activity: Activity,

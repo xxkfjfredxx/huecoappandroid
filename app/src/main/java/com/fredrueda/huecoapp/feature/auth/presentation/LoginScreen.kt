@@ -29,11 +29,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,27 +50,40 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.fredrueda.huecoapp.R
+import com.fredrueda.huecoapp.ui.components.ModernButton
+import com.fredrueda.huecoapp.ui.components.ModernInput
 import kotlinx.coroutines.delay
 
 @Preview(showSystemUi = true, device = "id:pixel_6_pro")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+/**
+ * Pantalla de inicio de sesión.
+ * Muestra carrusel informativo, formulario de login y botones de login social.
+ * Navega a Home tras autenticación exitosa.
+ */
 @Composable
 fun LoginScreen(
     onLoginClick: () -> Unit = {},
-    onAuthSuccess: () -> Unit = {}
+    onAuthSuccess: () -> Unit = {},
+    onRegisterClick: () -> Unit = {},
+    onForgotPasswordClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val activity = context as Activity
     val viewModel: AuthViewModel = hiltViewModel()
     val uiState by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
     val googleSignIn = rememberGoogleCredentialSignIn(
         activity = activity,
         webClientId = "795059173963-b952gr3hp9chqkn3p9cmg1dv2e06g1h6.apps.googleusercontent.com"
@@ -84,20 +94,7 @@ fun LoginScreen(
             Log.e("LoginScreen", "Error al iniciar sesión: $idToken")
         }
     }
-/*
-    val facebookSignIn = rememberFacebookSignIn(
-        activity = activity
-    ) { success, token, message ->
-        if (success && token != null) {
-            viewModel.loginWithFacebook(token)
-        } else {
-            Log.e("LoginScreen", "Error Facebook: $message")
-        }
-    }
 
- */
-
-    // --- Configuración del carrusel infinito ---
     val items = listOf(
         Triple(R.drawable.login_foto, "Reporta huecos fácilmente", "Toma una foto y ayuda a mejorar tu ciudad."),
         Triple(R.drawable.login_busqueda, "Mira el mapa en tiempo real", "Encuentra zonas críticas en tu comunidad."),
@@ -108,7 +105,6 @@ fun LoginScreen(
     val startPage = infiniteCount / 2 - (infiniteCount / 2) % items.size
     val pagerState = rememberPagerState(initialPage = startPage, pageCount = { infiniteCount })
 
-    // 🔹 Autoplay del carrusel
     LaunchedEffect(pagerState) {
         while (true) {
             delay(3000)
@@ -122,7 +118,6 @@ fun LoginScreen(
         }
     }
 
-    // 🔹 Observa el estado de autenticación
     LaunchedEffect(uiState.user) {
         if (uiState.user != null) {
             onAuthSuccess()
@@ -136,8 +131,7 @@ fun LoginScreen(
     }
 
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-    val pagerHeight = screenHeight * 0.35f // 35% del alto total
-
+    val pagerHeight = screenHeight * 0.35f
 
     Column(
         modifier = Modifier
@@ -148,7 +142,6 @@ fun LoginScreen(
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // ---------- 🔹 CARRUSEL SUPERIOR ----------
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
@@ -162,7 +155,6 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 🔸 Indicadores dinámicos
         Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
             repeat(items.size) { index ->
                 val realIndex = pagerState.currentPage % items.size
@@ -179,55 +171,45 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ---------- 🔹 FORMULARIO LOGIN ----------
-        var email by remember { mutableStateOf("") }
-        var password by remember { mutableStateOf("") }
-
-        OutlinedTextField(
+        ModernInput(
             value = email,
-            onValueChange = { email = it },
-            label = { Text("Correo electrónico") },
-            modifier = Modifier.fillMaxWidth()
+            label = "Correo electrónico",
+            keyboardType = KeyboardType.Email,
+            onValueChange = { email = it }
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
+        ModernInput(
             value = password,
+            label = "Contraseña",
+            isPassword = true,
             onValueChange = { password = it },
-            label = { Text("Contraseña") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
+            isLast = true
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        TextButton(onClick = {}, modifier = Modifier.align(Alignment.End)) {
-            Text("Forgot Password?", fontSize = 14.sp)
+        TextButton(
+            onClick = { onForgotPasswordClick() },
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text("Olvido su contraseña?", fontSize = 14.sp)
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Button(
+        ModernButton(
+            text = "Iniciar sesión",
             onClick = {
                 if (email.isNotBlank() && password.isNotBlank()) {
                     viewModel.login(email.trim(), password.trim())
                 } else {
                     Log.e("LoginScreen", "Campos vacíos")
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007AFF))
+            }
+        )
+
+        TextButton(
+            onClick = { onRegisterClick() },
+            modifier = Modifier.align(Alignment.CenterHorizontally)
         ) {
-            Text("Iniciar sesión", color = Color.White, fontWeight = FontWeight.Bold)
+            Text("Crear cuenta", fontSize = 14.sp, color = Color.Blue)
         }
-
-        TextButton(onClick = {}, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Text("Crear cuenta", fontSize = 14.sp,color = Color.Blue)
-        }
-
 
         Text("ó inicia sesión con", color = Color.Gray, fontSize = 14.sp)
 
@@ -253,6 +235,12 @@ fun LoginScreen(
     }
 }
 
+/**
+ * Item del carrusel superior.
+ * @param image recurso de imagen
+ * @param title título
+ * @param description descripción
+ */
 @Composable
 fun PagerItem(image: Int, title: String, description: String) {
     Column(
@@ -280,6 +268,12 @@ fun PagerItem(image: Int, title: String, description: String) {
     }
 }
 
+/**
+ * Botón de login social genérico.
+ * @param icon recurso del ícono
+ * @param text texto del botón
+ * @param onClick acción de click
+ */
 @Composable
 fun SocialButton(icon: Int, text: String, onClick: () -> Unit) {
     OutlinedButton(

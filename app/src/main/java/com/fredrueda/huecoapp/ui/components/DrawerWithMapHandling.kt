@@ -15,6 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import kotlinx.coroutines.launch
 
+/**
+ * Modifier helper para clicks sin ripple.
+ */
 fun Modifier.noRippleClickable(onClick: () -> Unit): Modifier = composed {
     clickable(
         interactionSource = remember { MutableInteractionSource() },
@@ -22,6 +25,14 @@ fun Modifier.noRippleClickable(onClick: () -> Unit): Modifier = composed {
     ) { onClick() }
 }
 
+/**
+ * Drawer que deshabilita gestos en pantalla de mapa y permite cerrar con tap.
+ * @param selectedRoute ruta actual
+ * @param drawerState estado del drawer
+ * @param onCloseDrawer acción suspend para cerrar
+ * @param drawerContent contenido del drawer
+ * @param content contenido principal
+ */
 @Composable
 fun DrawerWithMapHandling(
     selectedRoute: String,
