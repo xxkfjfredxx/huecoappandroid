@@ -81,6 +81,9 @@ dependencies {
     implementation(libs.converter.moshi)
     implementation(libs.logging.interceptor)
     implementation(libs.moshi.kotlin)
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    // DataStore
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // --- Coil (imágenes Compose) ---
     implementation(libs.coil.compose)
@@ -97,6 +100,8 @@ dependencies {
     implementation(libs.coil.svg)
     implementation(libs.osmdroid.android)
 
+    // --- Facebook Sign-in --
+    implementation("com.facebook.android:facebook-login:16.3.0")
     // --- Google Sign-In ---
     implementation(libs.play.services.auth)
     implementation(libs.androidx.credentials)

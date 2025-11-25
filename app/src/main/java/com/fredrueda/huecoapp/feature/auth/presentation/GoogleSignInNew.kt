@@ -13,6 +13,10 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.launch
 
+/**
+ * Google Credential API Sign-In con FirebaseAuth.
+ * Recoge el ID Token y lo devuelve en onResult para backend.
+ */
 @Composable
 fun rememberGoogleCredentialSignIn(
     activity: Activity,
@@ -51,7 +55,7 @@ fun rememberGoogleCredentialSignIn(
                     auth.signInWithCredential(firebaseCredential)
                         .addOnCompleteListener(activity) { task ->
                             if (task.isSuccessful) {
-                                onResult(true, auth.currentUser?.email)
+                                onResult(true, token)
                             } else {
                                 onResult(false, task.exception?.message)
                             }

@@ -1,14 +1,32 @@
 package com.fredrueda.huecoapp
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.fredrueda.huecoapp.ui.navigation.AppNavGraph
+import com.fredrueda.huecoapp.ui.navigation.Destinations
 import com.fredrueda.huecoapp.ui.theme.MyApplicationTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * Activity principal de HuecoApp.
+ * 
+ * Esta actividad es el punto de entrada de la aplicación y gestiona:
+ * - Configuración de la UI (barras de sistema, tema oscuro)
+ * - Navegación inicial de la aplicación
+ * - Procesamiento de deep links para restablecer contraseña
+ * 
+ * @author Fred Rueda
+ * @version 1.0
+ */
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private var latestIntent = mutableStateOf<Intent?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -16,20 +34,22 @@ class MainActivity : ComponentActivity() {
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.isAppearanceLightStatusBars = false
         controller.isAppearanceLightNavigationBars = false
-
-        // 🟡 Captura del deep link (uid + token)
-        val intentData = intent?.data
-        val uid = intentData?.getQueryParameter("uid")
-        val token = intentData?.getQueryParameter("token")
+        latestIntent.value = intent
 
         setContent {
             MyApplicationTheme {
                 AppNavGraph(
-                    startDestination = if (uid != null && token != null) "reset_password" else "splash",
-                    uid = uid,
-                    token = token
+                    startDestination = Destinations.Splash.route,
+                    intent = latestIntent.value
                 )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        latestIntent.value = intent
+        // La recomposición hará que el NavHost maneje el deep link
     }
 }
