@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -39,6 +40,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -66,12 +69,15 @@ import org.osmdroid.views.overlay.compass.InternalCompassOrientationProvider
 import org.osmdroid.views.overlay.gestures.RotationGestureOverlay
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission")
 @Composable
 fun ReportScreen(onBack: () -> Unit) {
     val context = LocalContext.current
+    val viewModel: ReportViewModel = hiltViewModel()
+    val state by viewModel.state.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
 
@@ -116,7 +122,18 @@ fun ReportScreen(onBack: () -> Unit) {
     }
 
     val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    LaunchedEffect(state.success) {
+        if (state.success) {
+            Toast.makeText(context, "Reporte creado con éxito", Toast.LENGTH_SHORT).show()
+            showSheet = false
+        }
+    }
 
+    LaunchedEffect(state.error) {
+        state.error?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+        }
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -335,22 +352,51 @@ fun ReportScreen(onBack: () -> Unit) {
                     ReportFormSheet(
                         onDismiss = { showSheet = false },
                         onSubmit = { description, base64Image ->
-                            // 🔹 Aquí subes a Firebase Storage o Firestore
-                            if (base64Image != null) {
-                                val bytes = android.util.Base64.decode(
-                                    base64Image,
-                                    android.util.Base64.DEFAULT
+
+                            // Convertir Base64 a File (solo si existe)
+                            val imageFile = base64Image?.let { b64 ->
+                                val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+                                val tempFile = File(
+                                    context.cacheDir,
+                                    "hueco_${System.currentTimeMillis()}.jpg"
                                 )
-                                // subir a Firebase Storage
+                                tempFile.writeBytes(bytes)
+                                tempFile
                             }
-                            Toast.makeText(context, "Reporte enviado con éxito", Toast.LENGTH_SHORT)
-                                .show()
-                            showSheet = false
+
+                            // Obtener lat/lon del marcador
+                            val point = userLocation
+                            if (point == null) {
+                                Toast.makeText(context, "Ubicación no detectada todavía", Toast.LENGTH_SHORT).show()
+                                return@ReportFormSheet
+                            }
+
+                            // Llamado al ViewModel EXACTO
+                            viewModel.crearHueco(
+                                latitud = point.latitude,
+                                longitud = point.longitude,
+                                descripcion = description,
+                                imagen = imageFile
+                            )
+
+                            // Cerrar sheet (esto se reactiva cuando success sea true)
+                            // showSheet = false
                         }
                     )
                 }
             }
         }
+        if (state.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0x88000000)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color.White)
+            }
+        }
+
     }
 
     // Limpieza de MapView

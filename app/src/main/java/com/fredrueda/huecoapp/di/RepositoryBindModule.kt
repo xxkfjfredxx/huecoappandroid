@@ -2,6 +2,8 @@ package com.fredrueda.huecoapp.di
 
 import com.fredrueda.huecoapp.feature.auth.data.repository.AuthRepositoryImpl
 import com.fredrueda.huecoapp.feature.auth.domain.repository.AuthRepository
+import com.fredrueda.huecoapp.feature.report.data.repository.HuecoRepositoryImpl
+import com.fredrueda.huecoapp.feature.report.domain.repository.HuecoRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -40,4 +42,11 @@ abstract class RepositoryBindModule {
     abstract fun bindAuthRepository(
         impl: AuthRepositoryImpl
     ): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindHuecoRepository(
+        impl: HuecoRepositoryImpl
+    ): HuecoRepository
+
 }
