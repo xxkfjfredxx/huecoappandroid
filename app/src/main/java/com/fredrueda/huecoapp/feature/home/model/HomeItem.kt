@@ -6,5 +6,6 @@ data class HomeItem(
     val descripcion: String,
     val estado: String, // Pendiente, En reparación, Arreglado
     val fecha: String,
-    val tipo: String // "Reportado", "Siguiendo", "Reincidente"
+    val tipo: String, // "Reportado", "Siguiendo", "Reincidente"
+    val imagen: String?
 )

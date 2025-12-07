@@ -56,6 +56,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material)
+
     implementation(libs.googleid)
     implementation(libs.androidx.preference.ktx)
     debugImplementation(libs.androidx.compose.ui.tooling)
@@ -76,14 +78,12 @@ dependencies {
     kapt(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
-    // --- Retrofit + Moshi + OkHttp ---
+    // --- Retrofit + OkHttp ---
     implementation(libs.retrofit)
-    implementation(libs.converter.moshi)
     implementation(libs.logging.interceptor)
-    implementation(libs.moshi.kotlin)
-    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    implementation(libs.converter.gson)
     // DataStore
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation(libs.androidx.datastore.preferences)
 
     // --- Coil (imágenes Compose) ---
     implementation(libs.coil.compose)
