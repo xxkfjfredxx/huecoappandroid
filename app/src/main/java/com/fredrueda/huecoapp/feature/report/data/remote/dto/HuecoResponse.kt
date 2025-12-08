@@ -16,7 +16,12 @@ data class HuecoResponse(
     @SerializedName("fecha_reporte") val fechaReporte: String?,
     @SerializedName("fecha_actualizacion") val fechaActualizacion: String?,
     val comentarios: List<ComentarioResponse>?,
-    @SerializedName("confirmaciones_count") val confirmacionesCount: Int?
+    @SerializedName("confirmaciones_count") val confirmacionesCount: Int?,
+    @SerializedName("validaciones_positivas") val validacionesPositivas: Int?,
+    @SerializedName("validaciones_negativas") val validacionesNegativas: Int?,
+    @SerializedName("distancia_m") val distanciaM: Double?,
+    @SerializedName("validado_usuario") val validadoUsuario: Boolean? = null,
+    @SerializedName("faltan_validaciones") val faltanValidaciones: Int? = null,
 )
 
 data class ComentarioResponse(

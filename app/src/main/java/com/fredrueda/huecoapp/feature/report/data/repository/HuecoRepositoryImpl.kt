@@ -50,4 +50,72 @@ class HuecoRepositoryImpl @Inject constructor(
             ApiResponse.NetworkError(e)
         }
     }
+
+    override suspend fun getHuecosCercanos(
+        latitud: Double,
+        longitud: Double,
+        radio: Int
+    ): ApiResponse<List<HuecoResponse>> {
+        return try {
+            val resp = api.getHuecosCercanos(
+                latitud = latitud,
+                longitud = longitud,
+                radio = radio
+            )
+
+            if (resp.isSuccessful) {
+                resp.body()?.let {
+                    ApiResponse.Success(it)
+                } ?: ApiResponse.HttpError(resp.code(), "Respuesta vacía")
+            } else {
+                ApiResponse.HttpError(resp.code(), resp.errorBody()?.string())
+            }
+        } catch (e: Exception) {
+            ApiResponse.NetworkError(e)
+        }
+    }
+
+    override suspend fun validarHueco(
+        huecoId: Int,
+        voto: Boolean
+    ): ApiResponse<Unit> {
+        return try {
+            val body = mapOf(
+                "hueco" to huecoId,
+                "voto" to voto
+            )
+            val resp = api.validarHueco(body)
+
+            if (resp.isSuccessful) {
+                ApiResponse.Success(Unit)
+            } else {
+                ApiResponse.HttpError(resp.code(), resp.errorBody()?.string())
+            }
+        } catch (e: Exception) {
+            ApiResponse.NetworkError(e)
+        }
+    }
+
+    override suspend fun confirmarHueco(
+        huecoId: Int,
+        confirmado: Boolean
+    ): ApiResponse<Unit> {
+        return try {
+            val body = mapOf(
+                "hueco" to huecoId,
+                "confirmado" to confirmado
+            )
+            val resp = api.confirmarHueco(body)
+
+            if (resp.isSuccessful) {
+                ApiResponse.Success(Unit)
+            } else {
+                ApiResponse.HttpError(resp.code(), resp.errorBody()?.string())
+            }
+        } catch (e: Exception) {
+            ApiResponse.NetworkError(e)
+        }
+    }
+
+
 }
