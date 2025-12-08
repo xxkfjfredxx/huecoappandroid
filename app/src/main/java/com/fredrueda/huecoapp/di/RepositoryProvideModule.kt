@@ -4,10 +4,13 @@ import com.fredrueda.huecoapp.feature.auth.domain.repository.AuthRepository
 import com.fredrueda.huecoapp.feature.auth.domain.use_case.ResetPasswordUseCase
 import com.fredrueda.huecoapp.feature.auth.domain.usecase.RegisterUseCase
 import com.fredrueda.huecoapp.feature.auth.domain.usecase.VerifyRegisterUseCase
+import com.fredrueda.huecoapp.feature.home.data.remote.api.HomeApi
+import com.fredrueda.huecoapp.feature.report.data.remote.api.HuecoApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import retrofit2.Retrofit
 import javax.inject.Singleton
 
 /**
@@ -55,4 +58,19 @@ object RepositoryProvideModule {
     fun provideResetPasswordUseCase(
         repository: AuthRepository
     ): ResetPasswordUseCase = ResetPasswordUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideHuecoApi(retrofit: Retrofit): HuecoApi {
+        return retrofit.create(HuecoApi::class.java)
+    }
+
+
+    @Provides
+    @Singleton
+    fun provideHomeApi(retrofit: Retrofit): HomeApi {
+        return retrofit.create(HomeApi::class.java)
+    }
+
+
 }

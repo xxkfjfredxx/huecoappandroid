@@ -3,7 +3,7 @@ package com.fredrueda.huecoapp.feature.map.presentation
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,31 +31,42 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.fredrueda.huecoapp.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.Overlay
 import org.osmdroid.views.overlay.compass.CompassOverlay
 import org.osmdroid.views.overlay.gestures.RotationGestureOverlay
+import org.osmdroid.views.overlay.infowindow.InfoWindow
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 @Preview(showBackground = true)
 @Composable
-fun MapScreen( modifier: Modifier = Modifier) {
+fun MapScreen(
+    modifier: Modifier = Modifier,
+    viewModel: MapViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
+    val state by viewModel.uiState.collectAsState()
     var mapView by remember { mutableStateOf<MapView?>(null) }
     var hasLocationPermission by remember { mutableStateOf(false) }
+    var locationInitialized by remember { mutableStateOf(false) }
 
-    // 🔹 Solicitud de permisos en tiempo de ejecución
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
+        ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        hasLocationPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        hasLocationPermission =
+            permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                    permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
     }
 
     LaunchedEffect(Unit) {
@@ -66,66 +78,124 @@ fun MapScreen( modifier: Modifier = Modifier) {
         )
     }
 
+    LaunchedEffect(state.mensaje) {
+        state.mensaje?.let { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            viewModel.limpiarMensaje()
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         val scope = rememberCoroutineScope()
 
-        // In Compose Preview, the map will not be displayed and a placeholder will be shown.
-        // This is to prevent render errors caused by the MapView initialization.
         if (LocalInspectionMode.current) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
-            ) {
-                Text(text = "Map preview not available")
-            }
+            ) { Text("Preview no disponible") }
         } else {
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { ctx ->
-                    // The osmdroid configuration is initialized before the MapView is created.
+
                     Configuration.getInstance().load(
                         ctx,
                         ctx.getSharedPreferences("osm_prefs", Context.MODE_PRIVATE)
                     )
+
                     MapView(ctx).apply {
                         setTileSource(TileSourceFactory.MAPNIK)
                         setMultiTouchControls(true)
                         isTilesScaledToDpi = true
 
-                        // 🔸 Rotación del mapa habilitada
-                        val rotationOverlay = RotationGestureOverlay(this)
-                        rotationOverlay.isEnabled = true
-                        overlays.add(rotationOverlay)
-
-                        // 🔸 Brújula
-                        val compassOverlay = CompassOverlay(ctx, this)
-                        compassOverlay.enableCompass()
-                        overlays.add(compassOverlay)
+                        overlays.add(RotationGestureOverlay(this).apply { isEnabled = true })
+                        overlays.add(CompassOverlay(ctx, this).apply { enableCompass() })
 
                         controller.setZoom(18.0)
-                        //controller.setCenter(GeoPoint(4.6097, -74.0817))
 
                         mapView = this
                     }
                 },
                 update = { view ->
-                    if (hasLocationPermission) {
+
+                    // ------- Inicializar ubicación ------- //
+                    if (hasLocationPermission && !locationInitialized) {
+                        locationInitialized = true
+
                         scope.launch {
-                            enableMyLocation(context, mapView = view)
+                            enableMyLocation(context, view) { lat, lon ->
+                                viewModel.cargarHuecosCercanos(lat, lon)
+                            }
                         }
+                    }
+
+                    // ------- Cerrar InfoWindow al tocar el mapa ------- //
+                    if (view.overlays.none { it is MapTouchOverlay }) {
+                        view.overlays.add(MapTouchOverlay {
+                            InfoWindow.closeAllInfoWindowsOn(view)
+                            viewModel.cerrarOverlay()
+                        })
+                    }
+
+                    // ------- Redibujar marcadores ------- //
+                    if (state.huecos.isNotEmpty()) {
+
+                        // limpiar marcadores anteriores (pero no overlays del sistema)
+                        view.overlays.removeAll { it is Marker }
+
+                        state.huecos.forEach { hueco ->
+                            val lat = hueco.latitud ?: return@forEach
+                            val lon = hueco.longitud ?: return@forEach
+
+                            val marker = Marker(view).apply {
+                                position = GeoPoint(lat, lon)
+                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                title = hueco.descripcion ?: "Hueco #${hueco.id}"
+                                icon = ContextCompat.getDrawable(context, R.drawable.ic_huecoapp)
+
+                                // ---- INFO WINDOW ---- //
+                                infoWindow = HuecoInfoWindow(
+                                    context = context,
+                                    mapView = view,
+                                    onClosed = { viewModel.cerrarOverlay() },
+                                ) {
+                                    HuecoOverlayCard(
+                                        hueco = hueco,
+                                        onClose = { closeInfoWindow() },
+                                        onPositivo = { viewModel.validarHuecoExiste(hueco.id) },
+                                        onNegativo = { viewModel.validarHuecoNoExiste(hueco.id) },
+                                        onReparado = { viewModel.reportarReparado(hueco.id) },
+                                        onAbierto = { viewModel.reportarAbierto(hueco.id) },
+                                        onCerrado = { viewModel.reportarCerrado(hueco.id) }
+                                    )
+                                }
+
+                                setOnMarkerClickListener { m, _ ->
+                                    // Cierra cualquier popup abierto antes de abrir este
+                                    InfoWindow.closeAllInfoWindowsOn(view)
+                                    viewModel.seleccionarHueco(hueco)
+                                    m.showInfoWindow()
+                                    true
+                                }
+
+                            }
+
+                            view.overlays.add(marker)
+                        }
+
+                        view.invalidate()
                     }
                 }
             )
         }
 
-
-        // 🔹 Botón flotante "Mi ubicación"
+        // ------- FAB MI UBICACIÓN ------- //
         FloatingActionButton(
             onClick = {
                 mapView?.let { map ->
-                    val overlay = map.overlays.find { it is MyLocationNewOverlay } as? MyLocationNewOverlay
-                    val loc = overlay?.myLocation
-                    if (loc != null) {
+                    val overlay =
+                        map.overlays.find { it is MyLocationNewOverlay } as? MyLocationNewOverlay
+                    overlay?.myLocation?.let { loc ->
                         map.controller.animateTo(loc)
                     }
                 }
@@ -134,30 +204,41 @@ fun MapScreen( modifier: Modifier = Modifier) {
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
-                .navigationBarsPadding() // 👈 evita que se corte con la barra inferior
+                .navigationBarsPadding()
         ) {
             Icon(Icons.Default.MyLocation, contentDescription = "Mi ubicación", tint = Color.Black)
         }
     }
 }
 
-@SuppressLint("MissingPermission")
-private suspend fun enableMyLocation(context: Context, mapView: MapView) {
-    withContext(Dispatchers.Main) {
-        if (
-            ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-            ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        ) {
-            val provider = GpsMyLocationProvider(context)
-            val locationOverlay = MyLocationNewOverlay(provider, mapView)
-            locationOverlay.enableMyLocation()
-            locationOverlay.enableFollowLocation()
-            mapView.overlays.add(locationOverlay)
+// -------- Overlay que detecta toque en el mapa -------- //
+class MapTouchOverlay(private val onTap: () -> Unit) : Overlay() {
+    override fun onSingleTapConfirmed(e: android.view.MotionEvent?, mapView: MapView?): Boolean {
+        onTap()
+        return false
+    }
+}
 
-            // Centrar en la ubicación actual cuando esté disponible
-            locationOverlay.runOnFirstFix {
-                mapView.controller.setCenter(locationOverlay.myLocation)
+@SuppressLint("MissingPermission")
+private suspend fun enableMyLocation(
+    context: Context,
+    mapView: MapView,
+    onLocationReady: (Double, Double) -> Unit
+) {
+    withContext(Dispatchers.Main) {
+        val provider = GpsMyLocationProvider(context)
+        val overlay = MyLocationNewOverlay(provider, mapView)
+
+        overlay.enableMyLocation()
+        overlay.enableFollowLocation()
+        mapView.overlays.add(overlay)
+
+        overlay.runOnFirstFix {
+            val loc = overlay.myLocation ?: return@runOnFirstFix
+            mapView.post {
+                mapView.controller.setCenter(loc)
             }
+            onLocationReady(loc.latitude, loc.longitude)
         }
     }
 }
