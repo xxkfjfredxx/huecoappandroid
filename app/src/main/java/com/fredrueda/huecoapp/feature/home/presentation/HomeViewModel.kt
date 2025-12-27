@@ -3,7 +3,6 @@ package com.fredrueda.huecoapp.feature.home.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fredrueda.huecoapp.core.data.network.ApiResponse
-import com.fredrueda.huecoapp.feature.home.domain.mapper.toHomeItem
 import com.fredrueda.huecoapp.feature.home.domain.usecase.GetHomeHuecosUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -92,16 +91,15 @@ class HomeViewModel @Inject constructor(
 
         when (val r = getMisReportesUseCase(limit = pageSize, offset = offset)) {
             is ApiResponse.Success -> {
-                val nuevos = r.data.results.map { it.toHomeItem("Reportado") }
-
+                android.util.Log.d("HomeViewModel", "JSON recibido (misReportes): ${r.data.results}")
+                // Guardar los DTOs completos en el estado
+                val nuevos = r.data.results
                 val listaFinal = if (reset) {
                     nuevos
                 } else {
                     current.misReportes + nuevos
                 }
-
                 val hayMas = r.data.next != null
-
                 _state.value = _state.value.copy(
                     misReportes = listaFinal,
                     misReportesOffset = offset,
@@ -123,16 +121,15 @@ class HomeViewModel @Inject constructor(
 
         when (val r = getSeguidosUseCase(limit = pageSize, offset = offset)) {
             is ApiResponse.Success -> {
-                val nuevos = r.data.results.map { it.toHomeItem("Seguido") }
-
+                android.util.Log.d("HomeViewModel", "JSON recibido (seguidos): ${r.data.results}")
+                // Guardar los DTOs completos en el estado
+                val nuevos = r.data.results
                 val listaFinal = if (reset) {
                     nuevos
                 } else {
                     current.seguidos + nuevos
                 }
-
                 val hayMas = r.data.next != null
-
                 _state.value = _state.value.copy(
                     seguidos = listaFinal,
                     seguidosOffset = offset,
@@ -163,4 +160,3 @@ class HomeViewModel @Inject constructor(
 
 
 }
-

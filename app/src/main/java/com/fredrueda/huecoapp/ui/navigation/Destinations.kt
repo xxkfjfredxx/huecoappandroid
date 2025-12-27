@@ -34,8 +34,8 @@ sealed class Destinations(val route: String) {
     /** Pantalla de verificación de código OTP (con parámetro email) */
     object VerifyRegister : Destinations("verify_register?email={email}")
 
-    object DetalleHueco : Destinations("detalle_hueco/{huecoId}") {
-        fun createRoute(huecoId: Int) = "detalle_hueco/$huecoId"
+    object DetalleHueco : Destinations("detalle_hueco") {
+        fun createRoute(hueco: com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse) = "detalle_hueco"
     }
     object Comentarios : Destinations("comentarios/{huecoId}") {
         fun createRoute(huecoId: Int) = "comentarios/$huecoId"

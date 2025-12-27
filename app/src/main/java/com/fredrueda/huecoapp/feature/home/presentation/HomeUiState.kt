@@ -1,14 +1,14 @@
 package com.fredrueda.huecoapp.feature.home.presentation
 
-import com.fredrueda.huecoapp.feature.home.model.HomeItem
+import com.fredrueda.huecoapp.feature.home.data.remote.dto.HuecoHomeDto
 
 data class HomeUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val error: String? = null,
 
-    val misReportes: List<HomeItem> = emptyList(),
-    val seguidos: List<HomeItem> = emptyList(),
+    val misReportes: List<HuecoHomeDto> = emptyList(),
+    val seguidos: List<HuecoHomeDto> = emptyList(),
 
     // Paginación Mis reportes
     val misReportesOffset: Int = 0,
@@ -20,4 +20,3 @@ data class HomeUiState(
     val seguidosHasMore: Boolean = true,
     val isLoadingMoreSeguidos: Boolean = false
 )
-

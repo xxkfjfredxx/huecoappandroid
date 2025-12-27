@@ -27,3 +27,13 @@ fun HuecoHomeDto.toHomeItem(tipo: String): HomeItem {
         imagen = fullImageUrl   // <-- LA URL COMPLETA
     )
 }
+
+fun HuecoHomeDto.toHomeItem(): HomeItem = HomeItem(
+    id = id,
+    titulo = descripcion ?: "",
+    descripcion = descripcion ?: "",
+    estado = estado ?: "",
+    fecha = fechaReporte ?: "",
+    tipo = "", // Puedes ajustar si tienes un campo tipo
+    imagen = imagen
+)

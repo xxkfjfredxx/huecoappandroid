@@ -18,14 +18,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.fredrueda.huecoapp.feature.home.model.HomeItem
+import com.fredrueda.huecoapp.feature.home.data.remote.dto.HuecoHomeDto
+import com.fredrueda.huecoapp.feature.home.domain.mapper.toHomeItem
 
 @OptIn(ExperimentalMaterialApi::class)
 @Preview(showBackground = true)
 @Composable
 fun HomeScreen(
-    huecos: List<HomeItem> = emptyList(),
-    onItemClick: (HomeItem) -> Unit = {},
+    huecos: List<HuecoHomeDto> = emptyList(),
+    onItemClick: (HuecoHomeDto) -> Unit = {},
     isRefreshing: Boolean = false,
     isLoading: Boolean = false,
     isLoadingMore: Boolean = false,      // <- NUEVO
@@ -60,7 +61,7 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 itemsIndexed(huecos) { index, item ->
-                    HomeCard(item = item, onClick = { onItemClick(item) })
+                    HomeCard(item = item.toHomeItem(), onClick = { onItemClick(item) })
 
                     if (index == huecos.lastIndex - 2 && !isLoadingMore) {
                         onLoadMore()
@@ -94,10 +95,5 @@ fun HomeScreen(
 @Preview(showBackground = true, name = "HomeScreen with data")
 @Composable
 fun HomeScreenPreview() {
-    val huecos = listOf(
-        HomeItem(1, "Hueco en la 10", "Hueco grande y peligroso", "Pendiente", "2024-05-20", "Reportado",""),
-        HomeItem(2, "Hueco en la 20", "Hueco mediano", "En reparación", "2024-05-19", "Siguiendo",""),
-        HomeItem(3, "Hueco en la 30", "Hueco pequeño", "Arreglado", "2024-05-18", "Reincidente","")
-    )
-    HomeScreen(huecos = huecos)
+    HomeScreen(huecos = emptyList())
 }

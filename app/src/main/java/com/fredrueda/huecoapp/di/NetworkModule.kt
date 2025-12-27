@@ -108,4 +108,14 @@ object NetworkModule {
     @Provides @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi =
         retrofit.create(AuthApi::class.java)
+
+    /**
+     * Proporciona la interfaz del API de detalles de Hueco.
+     *
+     * @param retrofit Instancia de Retrofit
+     * @return Implementación de HuecoDetailApi
+     */
+    @Provides @Singleton
+    fun provideHuecoDetailApi(retrofit: Retrofit): com.fredrueda.huecoapp.feature.huecos.data.remote.api.HuecoDetailApi =
+        retrofit.create(com.fredrueda.huecoapp.feature.huecos.data.remote.api.HuecoDetailApi::class.java)
 }

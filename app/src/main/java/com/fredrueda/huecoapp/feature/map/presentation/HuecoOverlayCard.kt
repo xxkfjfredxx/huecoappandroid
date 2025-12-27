@@ -54,19 +54,22 @@ class HuecoResponseProvider : PreviewParameterProvider<HuecoResponse> {
             descripcion = "Hueco de ejemplo",
             latitud = 4.6097,
             longitud = -74.0817,
-            direccion = "Calle Ejemplo 123",
             imagen = "",
             estado = "activo",
-            verificado = false,
+            isFollowed = false,
             fechaReporte = "2023-01-01",
             fechaActualizacion = "2023-01-01",
             comentarios = emptyList(),
             confirmacionesCount = 0,
             validacionesPositivas = 0,
             validacionesNegativas = 0,
-            distanciaM = 0.0,
             validadoUsuario = false,
-            faltanValidaciones = 2
+            miConfirmacion = false,
+            faltanValidaciones = 0,
+            numeroCiclos = 0,
+            gravedad = "Normal",
+            vistas = 0,
+            ciudad = "Bogotá",
         )
     )
 }
@@ -162,9 +165,9 @@ fun HuecoOverlayCard(
                     IconButton(onClick = onToggleSeguir, modifier = Modifier.size(32.dp)) {
                         // es_seguido debe estar en tu HuecoResponse
                         Icon(
-                            imageVector = if (hueco.verificado == true) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            imageVector = if (hueco.isFollowed == true) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                             contentDescription = "Seguir",
-                            tint = if (hueco.verificado == true) Color(0xFFFFC107) else Color.Gray
+                            tint = if (hueco.isFollowed == true) Color(0xFFFFC107) else Color.Gray
                         )
                     }
                 }

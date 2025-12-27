@@ -37,8 +37,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.fredrueda.huecoapp.feature.home.data.remote.dto.toHuecoResponse
 import com.fredrueda.huecoapp.feature.map.presentation.MapScreen
 import com.fredrueda.huecoapp.feature.profile.presentation.ProfileScreen
+import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
 import com.fredrueda.huecoapp.ui.components.DrawerWithMapHandling
 import kotlinx.coroutines.launch
 
@@ -47,7 +49,7 @@ import kotlinx.coroutines.launch
 fun MainHomeScreen(
     onLogout: () -> Unit = {},
     onNavigateToMap: () -> Unit = {},
-    onNavigateToDetail: (Int) -> Unit
+    onNavigateToDetail: (HuecoResponse) -> Unit
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -183,8 +185,8 @@ fun MainHomeScreen(
                                         // TAB: MIS REPORTES
                                         HomeScreen(
                                             huecos = homeState.misReportes,
-                                            onItemClick = {
-                                                onNavigateToDetail(it.id)
+                                            onItemClick = { huecoDto ->
+                                                onNavigateToDetail(huecoDto.toHuecoResponse())
                                             },
                                             isRefreshing = homeState.isRefreshing,
                                             isLoading = homeState.isLoading,
@@ -199,8 +201,8 @@ fun MainHomeScreen(
                                         // TAB: SEGUIDOS
                                         HomeScreen(
                                             huecos = homeState.seguidos,
-                                            onItemClick = {
-                                                onNavigateToDetail(it.id)
+                                            onItemClick = { huecoDto ->
+                                                onNavigateToDetail(huecoDto.toHuecoResponse())
                                             },
                                             isRefreshing = homeState.isRefreshing,
                                             isLoading = homeState.isLoading,

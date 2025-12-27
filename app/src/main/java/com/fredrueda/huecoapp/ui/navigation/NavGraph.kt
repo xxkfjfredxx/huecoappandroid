@@ -1,6 +1,7 @@
 package com.fredrueda.huecoapp.ui.navigation
 
 import android.content.Intent
+import android.util.Log
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
@@ -25,6 +26,7 @@ import com.fredrueda.huecoapp.feature.home.presentation.MainHomeScreen
 import com.fredrueda.huecoapp.feature.huecos.presentation.ComentariosScreen
 import com.fredrueda.huecoapp.feature.huecos.presentation.HuecoDetailScreen
 import com.fredrueda.huecoapp.feature.profile.presentation.ProfileScreen
+import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
 import com.fredrueda.huecoapp.feature.report.presentation.ReportScreen
 import com.fredrueda.huecoapp.session.SessionViewModel
 import com.fredrueda.huecoapp.ui.splash.SplashScreen
@@ -169,8 +171,10 @@ fun AppNavGraph(
             MainHomeScreen(
                 onLogout = { sessionViewModel.logout() },
                 onNavigateToMap = { navController.navigate("report")},
-                onNavigateToDetail = { huecoId ->
-                    navController.navigate(Destinations.DetalleHueco.createRoute(huecoId))
+                onNavigateToDetail = { hueco ->
+                    Log.e("HUECO", "usuario_nombre: $hueco") // Verifica aquí
+                    navController.currentBackStackEntry?.savedStateHandle?.set("hueco", hueco)
+                    navController.navigate(Destinations.DetalleHueco.route)
                 }
             )
         }
@@ -180,16 +184,15 @@ fun AppNavGraph(
         }
 
         // Pantalla de Detalle
-        composable(
-            route = Destinations.DetalleHueco.route,
-            arguments = listOf(navArgument("huecoId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val huecoId = backStackEntry.arguments?.getInt("huecoId") ?: 0
-            HuecoDetailScreen( // La pantalla que hicimos antes
-                huecoId = huecoId,
-                onBackClick = { navController.popBackStack() },
-                onSeeComments = { navController.navigate(Destinations.Comentarios.createRoute(huecoId)) }
-            )
+        composable(Destinations.DetalleHueco.route) {
+            val hueco = navController.previousBackStackEntry?.savedStateHandle?.get<HuecoResponse>("hueco")
+            if (hueco != null) {
+                HuecoDetailScreen(
+                    hueco = hueco,
+                    onBackClick = { navController.popBackStack() },
+                    onSeeComments = { navController.navigate(Destinations.Comentarios.createRoute(hueco.id)) }
+                )
+            }
         }
 
         // Pantalla de Comentarios

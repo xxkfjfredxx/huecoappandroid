@@ -34,6 +34,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.fredrueda.huecoapp.R
+import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -54,7 +55,7 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 fun MapScreen(
     modifier: Modifier = Modifier,
     viewModel: MapViewModel = hiltViewModel(),
-    onNavigateToDetail: (Int) -> Unit
+    onNavigateToDetail: (HuecoResponse) -> Unit
 ) {
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
@@ -166,7 +167,8 @@ fun MapScreen(
                                         onToggleSeguir = { viewModel.validarHuecoExiste(hueco.id) },
                                         onVerDetalle = {
                                             closeInfoWindow()
-                                            onNavigateToDetail(hueco.id) },
+                                            onNavigateToDetail(hueco)
+                                        },
                                         onValidarSiExiste = { viewModel.reportarReparado(hueco.id) },
                                         onValidarNoExiste = { viewModel.reportarReparado(hueco.id) },
                                         onReparado = { viewModel.reportarReparado(hueco.id) },

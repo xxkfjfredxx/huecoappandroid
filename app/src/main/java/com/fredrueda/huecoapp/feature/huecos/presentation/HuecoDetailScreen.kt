@@ -35,13 +35,13 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,6 +53,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.fredrueda.huecoapp.feature.report.data.remote.dto.ComentarioResponse
+import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
 
 // Definición de colores personalizados basados en el diseño
 val HuecoYellow = Color(0xFFFFC107)
@@ -66,10 +70,17 @@ val HuecoBackgroundGray = Color(0xFFF5F5F5)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HuecoDetailScreen(
-    huecoId: Int,
+    hueco: HuecoResponse,
     onBackClick: () -> Unit,
-    onSeeComments: () -> Unit)
-{
+    onSeeComments: () -> Unit,
+    viewModel: HuecoDetailViewModel = hiltViewModel()
+) {
+    val comentarios = viewModel.comentarios.collectAsState().value
+
+    androidx.compose.runtime.LaunchedEffect(hueco.id) {
+        viewModel.loadComentarios(hueco.id)
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -104,16 +115,16 @@ fun HuecoDetailScreen(
                 .verticalScroll(rememberScrollState())
                 .background(Color.White)
         ) {
-            HeaderImageSection()
+            HeaderImageSection(hueco)
 
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                HuecoInfoSection()
+                HuecoInfoSection(hueco)
                 Divider(color = HuecoBackgroundGray, thickness = 1.dp, modifier = Modifier.padding(vertical = 16.dp))
-                ReporterSection()
+                ReporterSection(hueco)
                 Divider(color = HuecoBackgroundGray, thickness = 1.dp, modifier = Modifier.padding(vertical = 16.dp))
-                MiniMapSection()
+                MiniMapSection(hueco)
                 Spacer(modifier = Modifier.height(24.dp))
-                CommentsSection(onSeeComments = onSeeComments)
+                CommentsSection(comentarios, onSeeComments = onSeeComments)
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
@@ -125,16 +136,16 @@ fun HuecoDetailScreen(
 
 // 1. Sección de la Imagen de Cabecera con Estado y Favorito
 @Composable
-fun HeaderImageSection() {
+fun HeaderImageSection(hueco: HuecoResponse) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(250.dp)
             .padding(16.dp)
     ) {
-        // Placeholder para la imagen principal. Reemplazar con AsyncImage (Coil)
-        Image(
-            painter = painterResource(android.R.drawable.ic_menu_gallery), // REEMPLAZAR IMAGEN REAL
+        // Imagen real del hueco
+        AsyncImage(
+            model = hueco.imagen,
             contentDescription = "Imagen del hueco",
             contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -159,9 +170,13 @@ fun HeaderImageSection() {
             )
         }
 
-        // Chip de Estado (Activo)
+        // Chip de Estado
         Surface(
-            color = HuecoRed,
+            color = when (hueco.estado) {
+                "activo" -> HuecoRed
+                "cerrado" -> HuecoGreen
+                else -> HuecoYellow
+            },
             shape = RoundedCornerShape(50),
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -176,7 +191,7 @@ fun HeaderImageSection() {
                     .background(Color.White, CircleShape))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Estado: Activo",
+                    text = "Estado: ${hueco.estado?.replaceFirstChar { it.uppercase() } ?: "-"}",
                     color = Color.White,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
@@ -188,7 +203,7 @@ fun HeaderImageSection() {
 
 // 2. Sección de Información Principal (Título, Ubicación, Gravedad)
 @Composable
-fun HuecoInfoSection() {
+fun HuecoInfoSection(hueco: HuecoResponse) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -197,7 +212,7 @@ fun HuecoInfoSection() {
         // Columna izquierda: Título y Ubicación
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Huecote #4829",
+                text = "Hueco #${hueco.id}",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.ExtraBold
             )
@@ -211,12 +226,17 @@ fun HuecoInfoSection() {
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "Av. Principal con Calle 5, Esquina Norte",
+                    text = hueco.ciudad ?: "Sin dirección",
                     color = HuecoTextGray,
                     fontSize = 14.sp,
                     lineHeight = 20.sp
                 )
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = hueco.descripcion ?: "Sin descripción",
+                fontSize = 16.sp
+            )
         }
 
         Spacer(modifier = Modifier.width(16.dp))
@@ -231,7 +251,7 @@ fun HuecoInfoSection() {
                     .background(HuecoOrangeScore.copy(alpha = 0.1f), CircleShape)
             ) {
                 Text(
-                    text = "4.5",
+                    text = hueco.gravedad?.replaceFirstChar { it.uppercase() } ?: "-",
                     color = HuecoOrangeScore,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
@@ -250,29 +270,33 @@ fun HuecoInfoSection() {
 
 // 3. Sección del Reportador
 @Composable
-fun ReporterSection() {
+fun ReporterSection(hueco: HuecoResponse) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        // Placeholder para avatar. Reemplazar con imagen real.
+        // Avatar placeholder
         Box(
             modifier = Modifier
                 .size(48.dp)
                 .background(Color(0xFF6495ED), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Text("JD", color = Color.White, fontWeight = FontWeight.Bold)
+            Text(
+                (hueco.usuarioNombre?.take(2)?.uppercase() ?: "--"),
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
         }
 
         Spacer(modifier = Modifier.width(12.dp))
 
         Column {
             Text(
-                text = "Reportado por Juan D.",
+                text = "Reportado por ${hueco.usuarioNombre ?: "-"}",
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "Hace 2 horas • 12 visualizaciones",
+                text = "${hueco.fechaReporte?.substring(0, 10) ?: "-"} • ${hueco.vistas ?: 0} visualizaciones",
                 fontSize = 12.sp,
                 color = HuecoTextGray
             )
@@ -282,7 +306,7 @@ fun ReporterSection() {
 
 // 4. Sección del Mini Mapa
 @Composable
-fun MiniMapSection() {
+fun MiniMapSection(hueco: HuecoResponse) {
     Card(
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
@@ -295,7 +319,7 @@ fun MiniMapSection() {
                 painter = painterResource(android.R.drawable.ic_dialog_map), // REEMPLAZAR CON MAPA REAL
                 contentDescription = "Mapa pequeño",
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize().background(Color(0xFFDCA795)) // Color de fondo temporal similar a la imagen
+                modifier = Modifier.fillMaxSize().background(Color(0xFFDCA795))
             )
 
             // Marcador central
@@ -329,7 +353,7 @@ fun MiniMapSection() {
 
 // 5. Sección de Comentarios
 @Composable
-fun CommentsSection(onSeeComments: () -> Unit) {
+fun CommentsSection(comentarios: List<ComentarioResponse>, onSeeComments: () -> Unit) {
     Column {
         // Cabecera de comentarios
         Row(
@@ -338,7 +362,7 @@ fun CommentsSection(onSeeComments: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Comentarios (3)",
+                text = "Comentarios (${comentarios.size})",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -347,13 +371,13 @@ fun CommentsSection(onSeeComments: () -> Unit) {
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-
-        // Ítem de comentario individual
-        CommentItem(
-            authorName = "Maria Gonzalez",
-            timeAgo = "Hace 15 min",
-            content = "Es horrible, casi se me pincha la llanta pasando por ahí. ¡Necesita arreglo urgente!"
-        )
+        if (comentarios.isNotEmpty()) {
+            CommentItem(
+                authorName = comentarios[0].usuarioNombre ?: "",
+                timeAgo = comentarios[0].fecha ?: "",
+                content = comentarios[0].texto ?: ""
+            )
+        }
     }
 }
 
@@ -490,7 +514,31 @@ fun StatusActionButton(
 @Preview(showBackground = true, heightDp = 900)
 @Composable
 fun HuecoDetailScreenPreview() {
-    MaterialTheme {
-        HuecoDetailScreen(1, {}, {})
-    }
+    val hueco = HuecoResponse(
+        id = 1,
+        usuario = 2,
+        usuarioNombre = "fredruedadeveloper",
+        ciudad = "Armenia",
+        descripcion = "Ejemplo de hueco para preview",
+        latitud = 4.5336,
+        longitud = -75.7061,
+        estado = "activo",
+        fechaReporte = "2025-11-27T23:50:21.629370Z",
+        fechaActualizacion = "2025-12-24T02:09:49.328494Z",
+        numeroCiclos = 0,
+        validacionesPositivas = 0,
+        validacionesNegativas = 1,
+        gravedad = "media",
+        vistas = 3,
+        imagen = null,
+        comentarios = listOf(
+            ComentarioResponse(1, 2, "usuario1", "Buen reporte", null, "2025-12-27T12:00:00Z")
+        ),
+        confirmacionesCount = 0,
+        validadoUsuario = false,
+        miConfirmacion = null,
+        faltanValidaciones = 0,
+        isFollowed = false
+    )
+    HuecoDetailScreen(hueco = hueco, onBackClick = {}, onSeeComments = {})
 }
