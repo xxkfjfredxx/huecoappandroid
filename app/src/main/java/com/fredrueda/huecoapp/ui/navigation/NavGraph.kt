@@ -4,17 +4,11 @@ import android.content.Intent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
@@ -28,10 +22,14 @@ import com.fredrueda.huecoapp.feature.auth.presentation.RegisterScreen
 import com.fredrueda.huecoapp.feature.auth.presentation.ResetPasswordScreen
 import com.fredrueda.huecoapp.feature.auth.presentation.VerifyRegisterScreen
 import com.fredrueda.huecoapp.feature.home.presentation.MainHomeScreen
+import com.fredrueda.huecoapp.feature.huecos.presentation.ComentariosScreen
+import com.fredrueda.huecoapp.feature.huecos.presentation.HuecoDetailScreen
+import com.fredrueda.huecoapp.feature.profile.presentation.ProfileScreen
 import com.fredrueda.huecoapp.feature.report.presentation.ReportScreen
 import com.fredrueda.huecoapp.session.SessionViewModel
 import com.fredrueda.huecoapp.ui.splash.SplashScreen
 import com.google.accompanist.navigation.animation.AnimatedNavHost
+
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -170,20 +168,42 @@ fun AppNavGraph(
         composable(Destinations.Home.route) {
             MainHomeScreen(
                 onLogout = { sessionViewModel.logout() },
-                onNavigateToMap = {
-                    navController.navigate("report")
+                onNavigateToMap = { navController.navigate("report")},
+                onNavigateToDetail = { huecoId ->
+                    navController.navigate(Destinations.DetalleHueco.createRoute(huecoId))
                 }
             )
         }
 
-        composable("profile") {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Perfil del usuario", color = Color.Gray)
-            }
+        composable(Destinations.Profile.route) {
+            ProfileScreen()
         }
+
+        // Pantalla de Detalle
+        composable(
+            route = Destinations.DetalleHueco.route,
+            arguments = listOf(navArgument("huecoId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val huecoId = backStackEntry.arguments?.getInt("huecoId") ?: 0
+            HuecoDetailScreen( // La pantalla que hicimos antes
+                huecoId = huecoId,
+                onBackClick = { navController.popBackStack() },
+                onSeeComments = { navController.navigate(Destinations.Comentarios.createRoute(huecoId)) }
+            )
+        }
+
+        // Pantalla de Comentarios
+        composable(
+            route = Destinations.Comentarios.route,
+            arguments = listOf(navArgument("huecoId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            // Aquí llamarías a ComentariosScreen que diseñamos
+            ComentariosScreen(
+                comentarios = emptyList(), // Aquí pasarías la lista de tu ViewModel
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
     }
 
 }

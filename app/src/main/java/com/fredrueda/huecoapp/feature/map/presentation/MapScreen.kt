@@ -53,7 +53,8 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 @Composable
 fun MapScreen(
     modifier: Modifier = Modifier,
-    viewModel: MapViewModel = hiltViewModel()
+    viewModel: MapViewModel = hiltViewModel(),
+    onNavigateToDetail: (Int) -> Unit
 ) {
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
@@ -162,8 +163,12 @@ fun MapScreen(
                                     HuecoOverlayCard(
                                         hueco = hueco,
                                         onClose = { closeInfoWindow() },
-                                        onPositivo = { viewModel.validarHuecoExiste(hueco.id) },
-                                        onNegativo = { viewModel.validarHuecoNoExiste(hueco.id) },
+                                        onToggleSeguir = { viewModel.validarHuecoExiste(hueco.id) },
+                                        onVerDetalle = {
+                                            closeInfoWindow()
+                                            onNavigateToDetail(hueco.id) },
+                                        onValidarSiExiste = { viewModel.reportarReparado(hueco.id) },
+                                        onValidarNoExiste = { viewModel.reportarReparado(hueco.id) },
                                         onReparado = { viewModel.reportarReparado(hueco.id) },
                                         onAbierto = { viewModel.reportarAbierto(hueco.id) },
                                         onCerrado = { viewModel.reportarCerrado(hueco.id) }

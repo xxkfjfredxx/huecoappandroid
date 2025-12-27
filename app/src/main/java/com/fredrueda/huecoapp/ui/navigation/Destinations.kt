@@ -25,9 +25,19 @@ sealed class Destinations(val route: String) {
     /** Pantalla principal / dashboard */
     object Home : Destinations("home")
 
+    object Profile : Destinations("profile")
+
+
     /** Pantalla de registro de nuevos usuarios */
     object Register : Destinations("register")
     
     /** Pantalla de verificación de código OTP (con parámetro email) */
     object VerifyRegister : Destinations("verify_register?email={email}")
+
+    object DetalleHueco : Destinations("detalle_hueco/{huecoId}") {
+        fun createRoute(huecoId: Int) = "detalle_hueco/$huecoId"
+    }
+    object Comentarios : Destinations("comentarios/{huecoId}") {
+        fun createRoute(huecoId: Int) = "comentarios/$huecoId"
+    }
 }

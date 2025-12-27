@@ -30,8 +30,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,14 +46,14 @@ import kotlinx.coroutines.launch
 @Composable
 fun MainHomeScreen(
     onLogout: () -> Unit = {},
-    onNavigateToMap: () -> Unit = {}
+    onNavigateToMap: () -> Unit = {},
+    onNavigateToDetail: (Int) -> Unit
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    var selectedRoute by remember { mutableStateOf("home") }
+    var selectedRoute by rememberSaveable { mutableStateOf("home") }
     val homeViewModel: HomeViewModel = hiltViewModel()
     val homeState by homeViewModel.state.collectAsState()
-
     LaunchedEffect(Unit) {
         homeViewModel.loadInitial()
     }
@@ -183,6 +183,9 @@ fun MainHomeScreen(
                                         // TAB: MIS REPORTES
                                         HomeScreen(
                                             huecos = homeState.misReportes,
+                                            onItemClick = {
+                                                onNavigateToDetail(it.id)
+                                            },
                                             isRefreshing = homeState.isRefreshing,
                                             isLoading = homeState.isLoading,
                                             isLoadingMore = homeState.isLoadingMoreMisReportes,
@@ -196,6 +199,9 @@ fun MainHomeScreen(
                                         // TAB: SEGUIDOS
                                         HomeScreen(
                                             huecos = homeState.seguidos,
+                                            onItemClick = {
+                                                onNavigateToDetail(it.id)
+                                            },
                                             isRefreshing = homeState.isRefreshing,
                                             isLoading = homeState.isLoading,
                                             isLoadingMore = homeState.isLoadingMoreSeguidos,
@@ -210,6 +216,7 @@ fun MainHomeScreen(
                     }
 
                     "map" -> MapScreen(
+                        onNavigateToDetail = onNavigateToDetail,
                         modifier = Modifier
                             .padding(innerScaffoldPadding)
                             .fillMaxSize()

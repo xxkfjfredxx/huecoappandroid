@@ -24,18 +24,19 @@ class HomeViewModel @Inject constructor(
 
     // CARGA INICIAL (llama a ambos servicios 1 sola vez)
     fun loadInitial() {
+        // Si ya tenemos datos, no cargamos de nuevo para evitar parpadeos al volver
+        if (_state.value.misReportes.isNotEmpty() || _state.value.seguidos.isNotEmpty()) {
+            return
+        }
+
         viewModelScope.launch {
             _state.value = _state.value.copy(
                 isLoading = true,
                 error = null
             )
-
             cargarMisReportes(reset = true)
             cargarSeguidos(reset = true)
-
-            _state.value = _state.value.copy(
-                isLoading = false
-            )
+            _state.value = _state.value.copy(isLoading = false)
         }
     }
 

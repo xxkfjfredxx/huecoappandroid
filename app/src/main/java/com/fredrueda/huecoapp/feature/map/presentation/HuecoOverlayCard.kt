@@ -1,162 +1,288 @@
 package com.fredrueda.huecoapp.feature.map.presentation
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
 
+// Clase para proveer datos de ejemplo al preview
+class HuecoResponseProvider : PreviewParameterProvider<HuecoResponse> {
+    override val values = sequenceOf(
+        HuecoResponse(
+            id = 1,
+            usuario = 1,
+            usuarioNombre = "Usuario Ejemplo",
+            descripcion = "Hueco de ejemplo",
+            latitud = 4.6097,
+            longitud = -74.0817,
+            direccion = "Calle Ejemplo 123",
+            imagen = "",
+            estado = "activo",
+            verificado = false,
+            fechaReporte = "2023-01-01",
+            fechaActualizacion = "2023-01-01",
+            comentarios = emptyList(),
+            confirmacionesCount = 0,
+            validacionesPositivas = 0,
+            validacionesNegativas = 0,
+            distanciaM = 0.0,
+            validadoUsuario = false,
+            faltanValidaciones = 2
+        )
+    )
+}
+
+@Preview(showSystemUi = true, device = "id:pixel_6_pro")
+@Composable
+fun HuecoOverlayCardPreview(
+    @PreviewParameter(HuecoResponseProvider::class) hueco: HuecoResponse
+) {
+    HuecoOverlayCard(
+        hueco = hueco,
+        onClose = {},
+        onToggleSeguir = {},
+        onVerDetalle = {},
+        onValidarSiExiste = {},
+        onValidarNoExiste = {},
+        onReparado = {},
+        onAbierto = {},
+        onCerrado = {}
+    )
+}
+
 @Composable
 fun HuecoOverlayCard(
     hueco: HuecoResponse,
     onClose: () -> Unit,
-    onPositivo: () -> Unit,
-    onNegativo: () -> Unit,
+    onToggleSeguir: () -> Unit,
+    onVerDetalle: () -> Unit,
+    onValidarSiExiste: () -> Unit,
+    onValidarNoExiste: () -> Unit,
     onReparado: () -> Unit,
     onAbierto: () -> Unit,
     onCerrado: () -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+    ElevatedCard(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = Color.White),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp),
         modifier = Modifier
-            .width(260.dp)
+            .width(320.dp)
             .wrapContentHeight()
-            .shadow(18.dp, RoundedCornerShape(16.dp))
     ) {
-        Box(Modifier.fillMaxWidth()) {
-            IconButton(
-                onClick = onClose,
-                modifier = Modifier.align(Alignment.TopEnd)
+        Column(modifier = Modifier.padding(12.dp)) {
+            // --- PARTE SUPERIOR: INFO ---
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Cerrar")
-            }
-        }
+                AsyncImage(
+                    model = hueco.imagen,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(110.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.LightGray),
+                    contentScale = ContentScale.Crop
+                )
 
-        Column(Modifier.padding(16.dp)) {
+                Spacer(Modifier.width(12.dp))
 
-            // Imagen
-            AsyncImage(
-                model = hueco.imagen,
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
-            )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = hueco.descripcion ?: "Hueco #${hueco.id}",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 16.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
 
-            Spacer(Modifier.height(8.dp))
+                    // Ajuste de nombres según tu archivo HuecoOverlayCard.kt
+                    Text(
+                        text = "${hueco.comentarios!!.size ?: 0} comentarios",
+                        fontSize = 13.sp,
+                        color = Color.Gray
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = "Estado :",
+                        fontSize = 13.sp,
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold
+                    )
+                    StatusChip(estado = hueco.estado!!)
+                }
 
-            Text(
-                text = hueco.descripcion ?: "Hueco #${hueco.id}",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    IconButton(onClick = onClose, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.Black)
+                    }
 
-            Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(8.dp))
 
-            when (hueco.estado) {
-                "pendiente_validacion" -> {
-                    if (hueco.validadoUsuario == true) {
-                        // 🔒 Ya validó este usuario → sin botones
-                        val faltan = hueco.faltanValidaciones ?: 0
-                        Text(
-                            text = buildString {
-                                append("Gracias por validar este hueco 🙌\n")
-                                if (faltan > 0) {
-                                    append("Faltan $faltan personas para confirmar este hueco.")
-                                } else {
-                                    append("Este hueco está casi listo para cambiar de estado.")
-                                }
-                            }
+                    IconButton(onClick = onToggleSeguir, modifier = Modifier.size(32.dp)) {
+                        // es_seguido debe estar en tu HuecoResponse
+                        Icon(
+                            imageVector = if (hueco.verificado == true) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = "Seguir",
+                            tint = if (hueco.verificado == true) Color(0xFFFFC107) else Color.Gray
                         )
-                    } else {
-                        // ✅ Aún no ha votado → mostrar botones
-                        Button(
-                            onClick = onPositivo,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF4CAF50)
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Sí existe") }
-
-                        Spacer(Modifier.height(8.dp))
-
-                        Button(
-                            onClick = onNegativo,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFF44336)
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("No existe") }
                     }
                 }
+            }
 
-                "activo" -> {
-                    Text("Hueco activo. ¿Estado actual?")
+            Spacer(Modifier.height(6.dp))
 
-                    Spacer(Modifier.height(8.dp))
+            // Botón principal
+            Button(
+                onClick = onVerDetalle,
+                modifier = Modifier.fillMaxWidth().height(40.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE6E971)),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text("Ir al detalle Hueco", color = Color.Black, fontWeight = FontWeight.Black)
+            }
 
-                    Button(
-                        onClick = onReparado,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFFC107)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("Reparado") }
-
-                    Spacer(Modifier.height(8.dp))
-
-                    Button(
-                        onClick = onAbierto,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4CAF50)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("Sigue abierto") }
-
-                    Spacer(Modifier.height(8.dp))
-
-                    Button(
-                        onClick = onCerrado,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF2196F3)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("Cerrado") }
+            // --- SECCIÓN CONDICIONAL ---
+            when (hueco.estado) {
+                "pendiente_validacion" -> {
+                    ValidationSection(
+                        hueco = hueco,
+                        onPositivo = onValidarSiExiste,
+                        onNegativo = onValidarNoExiste
+                    )
                 }
-
-                else -> {
-                    // otros estados, si quieres solo mostrar texto
-                    Text("Estado: ${hueco.estado}")
+                "activo", "reabierto" -> {
+                    HorizontalDivider(Modifier.padding(vertical = 12.dp), thickness = 0.5.dp)
+                    Text(
+                        "¿ Conoces el estado actual ?",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Black,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        SmallStateButton("Reparado", Color(0xFFFFC107), Modifier.weight(1f), onReparado)
+                        SmallStateButton("Cerrado", Color(0xFF4CAF50), Modifier.weight(1f), onCerrado)
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ValidationSection(hueco: HuecoResponse, onPositivo: () -> Unit, onNegativo: () -> Unit) {
+    HorizontalDivider(Modifier.padding(vertical = 12.dp), thickness = 0.5.dp)
+
+    // Aquí envolvemos todo en un Column con horizontalAlignment para que el texto se centre correctamente
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (hueco.validadoUsuario == true) { // Nombres corregidos
+            Text(
+                "Ya validaste este hueco. Gracias 🙌",
+                fontSize = 13.sp,
+                color = Color(0xFF4CAF50)
+            )
+        } else {
+            Text(
+                "Ayuda a validar. Faltan ${hueco.faltanValidaciones ?: 0} personas",
+                fontSize = 13.sp
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(
+                    onClick = onPositivo,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("Sí existe", fontSize = 12.sp) }
+
+                OutlinedButton(
+                    onClick = onNegativo,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("No existe", fontSize = 12.sp) }
+            }
+        }
+    }
+}
+
+@Composable
+fun SmallStateButton(text: String, color: Color, modifier: Modifier, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(36.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = color),
+        contentPadding = PaddingValues(0.dp)
+    ) {
+        Text(text, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+    }
+}
+
+@Composable
+fun StatusChip(estado: String) {
+    val (text, color) = when (estado) {
+        "pendiente_validacion" -> "Pendiente" to Color(0xFFFFC107)
+        "activo" -> "Activo" to Color(0xFFD32F2F)
+        "reabierto" -> "Reabierto" to Color(0xFFFFC107)
+        "cerrado" -> "Cerrado" to Color(0xFF4CAF50)
+        else -> estado to Color.Gray
+    }
+
+    Surface(
+        color = color,
+        shape = RoundedCornerShape(8.dp),
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 2.dp),
+            color = Color.White,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
