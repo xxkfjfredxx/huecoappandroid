@@ -203,4 +203,28 @@ class MapViewModel @Inject constructor(
     fun limpiarReopenInfoWindow() {
         _uiState.value = _uiState.value.copy(reopenInfoWindowId = null)
     }
+
+    fun toggleFollow(huecoId: Int, isFollowed: Boolean) {
+        viewModelScope.launch {
+            val result = if (isFollowed) {
+                huecoRepository.unfollowHueco(huecoId)
+            } else {
+                huecoRepository.followHueco(huecoId)
+            }
+            if (result is ApiResponse.Success) {
+                _uiState.value = _uiState.value.let { state ->
+                    val nuevosHuecos = state.huecos.map { h ->
+                        if (h.id == huecoId) h.copy(isFollowed = !isFollowed) else h
+                    }
+                    val nuevoSeleccionado = nuevosHuecos.find { it.id == huecoId }
+                    state.copy(
+                        huecos = nuevosHuecos,
+                        selectedHueco = nuevoSeleccionado,
+                        closeInfoWindow = true,
+                        reopenInfoWindowId = huecoId
+                    )
+                }
+            }
+        }
+    }
 }

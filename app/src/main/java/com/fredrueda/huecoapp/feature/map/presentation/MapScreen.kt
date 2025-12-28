@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -208,7 +210,7 @@ private fun MapScreenContent(
                                     HuecoOverlayCard(
                                         hueco = hueco,
                                         onClose = { closeInfoWindow() },
-                                        onToggleSeguir = { onValidarHuecoExiste(hueco.id) },
+                                        onToggleSeguir = { viewModel.toggleFollow(hueco.id, hueco.isFollowed == true) },
                                         onVerDetalle = {
                                             closeInfoWindow()
                                             onNavigateToDetail(hueco)
@@ -306,7 +308,20 @@ private fun HuecoOverlayCard(
     onVerDetalle: () -> Unit,
     viewModel: MapViewModel = hiltViewModel()
 ) {
-    // ... Código existente ...
+    // Botón de seguir/dejar de seguir (similar a HuecoDetailScreen)
+    IconButton(
+        onClick = {
+            viewModel.toggleFollow(hueco.id, hueco.isFollowed == true)
+        },
+        modifier = Modifier
+            .padding(8.dp)
+    ) {
+        Icon(
+            imageVector = if (hueco.isFollowed == true) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+            contentDescription = if (hueco.isFollowed == true) "Dejar de seguir" else "Seguir",
+            tint = if (hueco.isFollowed == true) Color.Red else Color.Gray
+        )
+    }
 
     // Ejemplo de cómo se podría manejar el evento de cerrar el InfoWindow
     // en el botón de cerrar de la tarjeta del hueco
