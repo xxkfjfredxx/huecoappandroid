@@ -55,7 +55,7 @@ class HuecoResponseProvider : PreviewParameterProvider<HuecoResponse> {
             latitud = 4.6097,
             longitud = -74.0817,
             imagen = "",
-            estado = "activo",
+            estado = "pendiente_validacion",
             isFollowed = false,
             fechaReporte = "2023-01-01",
             fechaActualizacion = "2023-01-01",
@@ -64,7 +64,7 @@ class HuecoResponseProvider : PreviewParameterProvider<HuecoResponse> {
             validacionesPositivas = 0,
             validacionesNegativas = 0,
             validadoUsuario = false,
-            miConfirmacion = false,
+            miConfirmacion = null,
             faltanValidaciones = 0,
             numeroCiclos = 0,
             gravedad = "Normal",
@@ -225,7 +225,8 @@ fun ValidationSection(hueco: HuecoResponse, onPositivo: () -> Unit, onNegativo: 
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (hueco.validadoUsuario == true) { // Nombres corregidos
+        // Mostrar mensaje si ya validó o si el voto es true (validación positiva)
+        if (hueco.validadoUsuario == true || hueco.miConfirmacion?.voto == true) {
             Text(
                 "Ya validaste este hueco. Gracias 🙌",
                 fontSize = 13.sp,

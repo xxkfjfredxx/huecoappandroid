@@ -75,25 +75,27 @@ class MapViewModel @Inject constructor(
                                 val nuevasPos = (h.validacionesPositivas ?: 0) + 1
                                 h.copy(
                                     validadoUsuario = true,
+                                    miConfirmacion = result.data, // ACTUALIZA CON RESPUESTA
                                     validacionesPositivas = nuevasPos,
                                     faltanValidaciones = max(0, 5 - nuevasPos)
                                 )
                             } else h
                         }
-
                         val nuevoSeleccionado = nuevosHuecos.find { it.id == huecoId }
-
                         state.copy(
                             huecos = nuevosHuecos,
                             selectedHueco = nuevoSeleccionado,
-                            mensaje = "¡Gracias por validar este hueco! 🙌"
+                            mensaje = "¡Gracias por validar este hueco! 🙌",
+                            closeInfoWindow = true,
+                            reopenInfoWindowId = huecoId // activa reapertura
                         )
                     }
                 }
                 is ApiResponse.HttpError -> {
                     if (result.message?.contains("Ya has validado este hueco") == true) {
                         _uiState.value = _uiState.value.copy(
-                            mensaje = "Ya validaste este hueco 👍"
+                            mensaje = "Ya validaste este hueco 👍",
+                            closeInfoWindow = true // también cierra en error conocido
                         )
                     } else {
                         _uiState.value = _uiState.value.copy(
@@ -107,12 +109,8 @@ class MapViewModel @Inject constructor(
                     )
                 }
             }
-
-            // 👀 Importante: NO cierro overlay aquí para que se vea el cambio
-            // cerrarOverlay()
         }
     }
-
 
     fun validarHuecoNoExiste(huecoId: Int) {
         viewModelScope.launch {
@@ -124,25 +122,25 @@ class MapViewModel @Inject constructor(
                                 val nuevasNeg = (h.validacionesNegativas ?: 0) + 1
                                 h.copy(
                                     validadoUsuario = true,
+                                    miConfirmacion = result.data, // ACTUALIZA CON RESPUESTA
                                     validacionesNegativas = nuevasNeg
-                                    // si quisieras, también podrías recalcular faltanValidaciones
                                 )
                             } else h
                         }
-
                         val nuevoSeleccionado = nuevosHuecos.find { it.id == huecoId }
-
                         state.copy(
                             huecos = nuevosHuecos,
                             selectedHueco = nuevoSeleccionado,
-                            mensaje = "Gracias por tu validación 🙌"
+                            mensaje = "Gracias por tu validación 🙌",
+                            closeInfoWindow = true // activa bandera para cerrar InfoWindow
                         )
                     }
                 }
                 is ApiResponse.HttpError -> {
                     if (result.message?.contains("Ya has validado este hueco") == true) {
                         _uiState.value = _uiState.value.copy(
-                            mensaje = "Ya validaste este hueco 👍"
+                            mensaje = "Ya validaste este hueco 👍",
+                            closeInfoWindow = true
                         )
                     } else {
                         _uiState.value = _uiState.value.copy(
@@ -156,10 +154,11 @@ class MapViewModel @Inject constructor(
                     )
                 }
             }
-
-            // tampoco cierro overlay aquí
-            // cerrarOverlay()
         }
+    }
+
+    fun infoWindowCerrado() {
+        _uiState.value = _uiState.value.copy(closeInfoWindow = false)
     }
 
     fun limpiarMensaje() {
@@ -187,5 +186,20 @@ class MapViewModel @Inject constructor(
             huecoRepository.confirmarHueco(huecoId, confirmado = false)
             cerrarOverlay()
         }
+    }
+
+    fun reabrirInfoWindow(huecoId: Int) {
+        val hueco = _uiState.value.huecos.find { it.id == huecoId }
+        if (hueco != null) {
+            _uiState.value = _uiState.value.copy(selectedHueco = hueco)
+        }
+    }
+
+    fun marcarParaReabrirInfoWindow(huecoId: Int) {
+        _uiState.value = _uiState.value.copy(reopenInfoWindowId = huecoId)
+    }
+
+    fun limpiarReopenInfoWindow() {
+        _uiState.value = _uiState.value.copy(reopenInfoWindowId = null)
     }
 }

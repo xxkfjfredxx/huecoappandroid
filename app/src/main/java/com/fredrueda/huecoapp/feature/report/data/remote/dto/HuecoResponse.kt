@@ -25,7 +25,7 @@ data class HuecoResponse(
     val comentarios: List<ComentarioResponse>?,
     @SerializedName("confirmaciones_count") val confirmacionesCount: Int?,
     @SerializedName("validado_usuario") val validadoUsuario: Boolean?,
-    @SerializedName("mi_confirmacion") val miConfirmacion: Boolean?,
+    @SerializedName("mi_confirmacion") val miConfirmacion: MiConfirmacionResponse?,
     @SerializedName("faltan_validaciones") val faltanValidaciones: Int?,
     @SerializedName("is_followed") val isFollowed: Boolean?
 ) : Parcelable
@@ -46,3 +46,14 @@ data class ComentarioPageResponse(
     val previous: String?,
     val results: List<ComentarioResponse>
 )
+
+@Parcelize
+data class MiConfirmacionResponse(
+    val id: Int?,
+    val hueco: Int?,
+    val usuario: Int?,
+    @SerializedName("usuario_nombre") val usuarioNombre: String?,
+    val confirmado: Boolean?,
+    val fecha: String?,
+    @SerializedName("voto") val voto: Boolean? // <-- AGREGADO
+) : Parcelable

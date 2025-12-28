@@ -58,4 +58,13 @@ class HuecoDetailViewModel @Inject constructor(
         isLastPage = false
         _comentarios.value = emptyList()
     }
+
+    fun toggleFollow(huecoId: Int, isFollowed: Boolean) {
+        viewModelScope.launch {
+            val result = repository.toggleFollow(huecoId, isFollowed)
+            if (result) {
+                _huecoDetail.value = _huecoDetail.value?.copy(isFollowed = !isFollowed)
+            }
+        }
+    }
 }

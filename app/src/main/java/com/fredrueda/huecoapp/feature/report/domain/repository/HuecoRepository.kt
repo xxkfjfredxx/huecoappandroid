@@ -2,6 +2,7 @@ package com.fredrueda.huecoapp.feature.report.domain.repository
 
 import com.fredrueda.huecoapp.core.data.network.ApiResponse
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
+import com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse
 import java.io.File
 
 interface HuecoRepository {
@@ -20,10 +21,13 @@ interface HuecoRepository {
     suspend fun validarHueco(
         huecoId: Int,
         voto: Boolean
-    ): ApiResponse<Unit>
+    ): ApiResponse<MiConfirmacionResponse>
 
     suspend fun confirmarHueco(
         huecoId: Int,
         confirmado: Boolean
     ): ApiResponse<Unit>
+
+    suspend fun followHueco(huecoId: Int): ApiResponse<Unit>
+    suspend fun unfollowHueco(huecoId: Int): ApiResponse<Unit>
 }

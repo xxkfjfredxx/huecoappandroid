@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -76,9 +77,11 @@ fun HuecoDetailScreen(
     viewModel: HuecoDetailViewModel = hiltViewModel()
 ) {
     val comentarios = viewModel.comentarios.collectAsState().value
+    val huecoDetail = viewModel.huecoDetail.collectAsState().value ?: hueco
 
     androidx.compose.runtime.LaunchedEffect(hueco.id) {
         viewModel.loadComentarios(hueco.id)
+        viewModel.loadHuecoDetail(hueco.id)
     }
 
     Scaffold(
@@ -115,14 +118,14 @@ fun HuecoDetailScreen(
                 .verticalScroll(rememberScrollState())
                 .background(Color.White)
         ) {
-            HeaderImageSection(hueco)
+            HeaderImageSection(huecoDetail, viewModel)
 
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                HuecoInfoSection(hueco)
+                HuecoInfoSection(huecoDetail)
                 Divider(color = HuecoBackgroundGray, thickness = 1.dp, modifier = Modifier.padding(vertical = 16.dp))
-                ReporterSection(hueco)
+                ReporterSection(huecoDetail)
                 Divider(color = HuecoBackgroundGray, thickness = 1.dp, modifier = Modifier.padding(vertical = 16.dp))
-                MiniMapSection(hueco)
+                MiniMapSection(huecoDetail)
                 Spacer(modifier = Modifier.height(24.dp))
                 CommentsSection(comentarios, onSeeComments = onSeeComments)
                 Spacer(modifier = Modifier.height(24.dp))
@@ -136,7 +139,7 @@ fun HuecoDetailScreen(
 
 // 1. Sección de la Imagen de Cabecera con Estado y Favorito
 @Composable
-fun HeaderImageSection(hueco: HuecoResponse) {
+fun HeaderImageSection(hueco: HuecoResponse, viewModel: HuecoDetailViewModel) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -156,7 +159,7 @@ fun HeaderImageSection(hueco: HuecoResponse) {
 
         // Icono de favorito (corazón)
         IconButton(
-            onClick = { /* TODO: Toggle favorito */ },
+            onClick = { viewModel.toggleFollow(hueco.id, hueco.isFollowed == true) },
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(8.dp)
@@ -164,9 +167,9 @@ fun HeaderImageSection(hueco: HuecoResponse) {
                 .size(40.dp)
         ) {
             Icon(
-                Icons.Outlined.FavoriteBorder,
-                contentDescription = "Favorito",
-                tint = HuecoTextGray
+                imageVector = if (hueco.isFollowed == true) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                contentDescription = if (hueco.isFollowed == true) "Dejar de seguir" else "Seguir",
+                tint = if (hueco.isFollowed == true) HuecoRed else HuecoTextGray
             )
         }
 

@@ -7,6 +7,7 @@ data class MapUiState(
     val selectedHueco: HuecoResponse? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val mensaje: String? = null      // 👈 AÑADIR ESTO
+    val mensaje: String? = null,      // 👈 AÑADIR ESTO
+    val closeInfoWindow: Boolean = false, // bandera para cerrar el InfoWindow
+    val reopenInfoWindowId: Int? = null // ID del hueco a reabrir
 )
-

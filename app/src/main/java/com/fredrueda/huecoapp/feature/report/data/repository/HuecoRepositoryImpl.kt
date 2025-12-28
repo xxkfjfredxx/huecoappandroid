@@ -3,6 +3,7 @@ package com.fredrueda.huecoapp.feature.report.data.repository
 import com.fredrueda.huecoapp.core.data.network.ApiResponse
 import com.fredrueda.huecoapp.feature.report.data.remote.api.HuecoApi
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
+import com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse
 import com.fredrueda.huecoapp.feature.report.domain.repository.HuecoRepository
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -78,7 +79,7 @@ class HuecoRepositoryImpl @Inject constructor(
     override suspend fun validarHueco(
         huecoId: Int,
         voto: Boolean
-    ): ApiResponse<Unit> {
+    ): ApiResponse<MiConfirmacionResponse> {
         return try {
             val body = mapOf(
                 "hueco" to huecoId,
@@ -87,7 +88,8 @@ class HuecoRepositoryImpl @Inject constructor(
             val resp = api.validarHueco(body)
 
             if (resp.isSuccessful) {
-                ApiResponse.Success(Unit)
+                resp.body()?.let { ApiResponse.Success(it) }
+                    ?: ApiResponse.HttpError(resp.code(), "Respuesta vacía")
             } else {
                 ApiResponse.HttpError(resp.code(), resp.errorBody()?.string())
             }
@@ -113,6 +115,36 @@ class HuecoRepositoryImpl @Inject constructor(
                 ApiResponse.HttpError(resp.code(), resp.errorBody()?.string())
             }
         } catch (e: Exception) {
+            ApiResponse.NetworkError(e)
+        }
+    }
+
+    override suspend fun followHueco(huecoId: Int): ApiResponse<Unit> {
+        return try {
+            val response = api.followHueco(huecoId)
+            if (response.isSuccessful) {
+                ApiResponse.Success(Unit)
+            } else {
+                ApiResponse.HttpError(response.code(), response.message())
+            }
+        } catch (e: HttpException) {
+            ApiResponse.HttpError(e.code(), e.message())
+        } catch (e: IOException) {
+            ApiResponse.NetworkError(e)
+        }
+    }
+
+    override suspend fun unfollowHueco(huecoId: Int): ApiResponse<Unit> {
+        return try {
+            val response = api.unfollowHueco(huecoId)
+            if (response.isSuccessful) {
+                ApiResponse.Success(Unit)
+            } else {
+                ApiResponse.HttpError(response.code(), response.message())
+            }
+        } catch (e: HttpException) {
+            ApiResponse.HttpError(e.code(), e.message())
+        } catch (e: IOException) {
             ApiResponse.NetworkError(e)
         }
     }

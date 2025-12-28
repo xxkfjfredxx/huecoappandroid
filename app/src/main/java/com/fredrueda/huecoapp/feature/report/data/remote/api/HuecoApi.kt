@@ -1,6 +1,7 @@
 package com.fredrueda.huecoapp.feature.report.data.remote.api
 
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
+import com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -9,6 +10,7 @@ import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface HuecoApi {
@@ -32,10 +34,16 @@ interface HuecoApi {
     @POST("api/v1/validaciones/")
     suspend fun validarHueco(
         @Body body: Map<String, @JvmSuppressWildcards Any>
-    ): Response<Unit>
+    ): Response<MiConfirmacionResponse>
 
     @POST("api/v1/confirmaciones/")
     suspend fun confirmarHueco(
         @Body body: Map<String, @JvmSuppressWildcards Any>
     ): Response<Unit>
+
+    @POST("api/v1/huecos/{id}/follow/")
+    suspend fun followHueco(@Path("id") huecoId: Int): Response<Unit>
+
+    @POST("api/v1/huecos/{id}/unfollow/")
+    suspend fun unfollowHueco(@Path("id") huecoId: Int): Response<Unit>
 }

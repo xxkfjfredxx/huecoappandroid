@@ -11,4 +11,25 @@ class HuecoDetailRepository @Inject constructor(
     suspend fun getHuecoDetail(id: Int): HuecoResponse = api.getHuecoDetail(id)
     suspend fun getComentarios(huecoId: Int, page: Int? = null, pageSize: Int? = null): ComentarioPageResponse =
         api.getComentarios(huecoId, page, pageSize)
+
+    suspend fun followHueco(id: Int): Boolean {
+        val response = api.followHueco(id)
+        val detail = response.body()?.get("detail") ?: ""
+        val success = response.isSuccessful && (detail.contains("sigues") || detail.contains("seguido"))
+        return success
+    }
+
+    suspend fun unfollowHueco(id: Int): Boolean {
+        val response = api.unfollowHueco(id)
+        val success = response.isSuccessful && response.body()?.get("detail")?.contains("dejado de seguir") == true
+        return success
+    }
+
+    suspend fun toggleFollow(id: Int, isFollowed: Boolean): Boolean {
+        return if (isFollowed) {
+            unfollowHueco(id)
+        } else {
+            followHueco(id)
+        }
+    }
 }
