@@ -132,7 +132,8 @@ class MapViewModel @Inject constructor(
                             huecos = nuevosHuecos,
                             selectedHueco = nuevoSeleccionado,
                             mensaje = "Gracias por tu validación 🙌",
-                            closeInfoWindow = true // activa bandera para cerrar InfoWindow
+                            closeInfoWindow = true, // activa bandera para cerrar InfoWindow
+                            reopenInfoWindowId = huecoId // <-- AÑADIDO para reabrir
                         )
                     }
                 }
