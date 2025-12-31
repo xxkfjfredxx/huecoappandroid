@@ -15,10 +15,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ElevatedCard
@@ -28,17 +32,30 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.fredrueda.huecoapp.feature.report.data.remote.dto.ComentarioResponse
+import kotlinx.coroutines.launch
 
-// Modelo de datos sugerido para los comentarios
+// Modelo de datos sugerido para los comentarios (UI)
 data class ComentarioUI(
     val id: Int,
     val autor: String,
@@ -51,9 +68,37 @@ data class ComentarioUI(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ComentariosScreen(
-    comentarios: List<ComentarioUI>, // Pasa tu lista aquí
-    onBackClick: () -> Unit
+    huecoId: Int,
+    onBackClick: () -> Unit,
+    viewModel: HuecoDetailViewModel = hiltViewModel()
 ) {
+    // Estado del ViewModel
+    val comentarios by viewModel.comentarios.collectAsState()
+
+    // Cargar comentarios al abrir la pantalla (solo la primera vez o cuando cambie huecoId)
+    LaunchedEffect(huecoId) {
+        viewModel.resetComentarios()
+        viewModel.loadComentarios(huecoId)
+    }
+
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
+    // Campo de texto para nuevo comentario
+    var newText by remember { mutableStateOf("") }
+
+    val focusManager = LocalFocusManager.current
+
+    // Cuando la lista cambia, hacer scroll al inicio (más reciente arriba)
+    LaunchedEffect(comentarios.size) {
+        if (comentarios.isNotEmpty()) {
+            scope.launch {
+                // Los comentarios están ordenados: más recientes primero, por eso ir al índice 0
+                listState.animateScrollToItem(0)
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -76,34 +121,87 @@ fun ComentariosScreen(
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = Color.White
                 ),
-                modifier = Modifier.shadow(bottom = 1.dp) // Sutil separación
+                modifier = Modifier
             )
         },
-        containerColor = Color(0xFFF8F8F8) // Un gris muy claro de fondo para resaltar los cards blancos
+        containerColor = Color(0xFFF8F8F8)
     ) { paddingValues ->
-
-        if (comentarios.isEmpty()) {
-            // Estado vacío opcional
-            Box(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("No hay comentarios aún.", color = Color.Gray)
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            if (comentarios.isEmpty()) {
+                // Estado vacío opcional, dejar espacio para la barra inferior
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No hay comentarios aún.", color = Color.Gray)
+                }
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(comentarios) { comentario ->
+                        CommentCardItem(comentario.toUI())
+                    }
+                }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp) // Espacio entre cards
+
+            // Barra inferior para escribir y enviar comentario (fondo blanco)
+            Surface(
+                tonalElevation = 2.dp,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
+                color = Color.White
             ) {
-                items(comentarios) { comentario ->
-                    CommentCardItem(comentario)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextField(
+                        value = newText,
+                        onValueChange = { newText = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Escribe un comentario...", color = Color.Gray) },
+                        textStyle = TextStyle(color = Color.Black)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                         val texto = newText.trim()
+                         if (texto.isNotEmpty()) {
+                             viewModel.postComentario(huecoId, texto, null)
+                             newText = ""
+                             // limpiar foco (esto también oculta el teclado)
+                             focusManager.clearFocus()
+                         }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = HuecoYellow)
+                    ) {
+                        Icon(imageVector = Icons.Default.Send, contentDescription = "Enviar")
+                    }
                 }
             }
         }
     }
+}
+
+// Extensión para mapear ComentarioResponse -> ComentarioUI
+fun ComentarioResponse.toUI(): ComentarioUI {
+    val nombre = this.usuarioNombre ?: "Usuario"
+    val iniciales = nombre.split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("")
+    return ComentarioUI(
+        id = this.id,
+        autor = nombre,
+        fecha = this.fecha ?: "",
+        contenido = this.texto ?: "",
+        iniciales = iniciales.uppercase()
+    )
 }
 
 @Composable
@@ -169,12 +267,7 @@ fun CommentCardItem(comentario: ComentarioUI) {
     }
 }
 
-// Extensión para añadir una sombra sutil al top bar (opcional)
-fun Modifier.shadow(bottom: androidx.compose.ui.unit.Dp) = this.then(
-    Modifier.padding(bottom = bottom).background(Color.Black.copy(alpha = 0.05f))
-)
-
-// Previews para visualizar los componentes
+// Previews
 @Preview(showBackground = true)
 @Composable
 fun ComentariosScreenPreview() {
@@ -194,33 +287,8 @@ fun ComentariosScreenPreview() {
             contenido = "Otro comentario de ejemplo con más texto para ver cómo se comporta el diseño con contenido más largo.",
             iniciales = "ML",
             colorAvatar = Color(0xFFE74C3C)
-        ),
-        ComentarioUI(
-            id = 3,
-            autor = "Carlos García",
-            fecha = "Hace 1 día",
-            contenido = "Comentario más corto.",
-            iniciales = "CG",
-            colorAvatar = Color(0xFF2ECC71)
         )
     )
-    
-    ComentariosScreen(comentarios = comentarios, onBackClick = { })
-}
 
-@Preview(showBackground = true)
-@Composable
-fun CommentCardItemPreview() {
-    val comentario = ComentarioUI(
-        id = 1,
-        autor = "Usuario de Prueba",
-        fecha = "Ahora",
-        contenido = "Este es un comentario de ejemplo para la vista previa del card individual.",
-        iniciales = "UP",
-        colorAvatar = Color(0xFF6495ED)
-    )
-    
-    Surface {
-        CommentCardItem(comentario)
-    }
+    ComentariosScreen(huecoId = 1, onBackClick = { })
 }

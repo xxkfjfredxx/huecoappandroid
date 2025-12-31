@@ -31,6 +31,7 @@ fun HomeItem.toHuecoResponse(): HuecoResponse = HuecoResponse(
     vistas = null,
     imagen = imagen,
     comentarios = emptyList<ComentarioResponse>(),
+    totalComentarios = 0,
     confirmacionesCount = null,
     validadoUsuario = null,
     miConfirmacion = null,

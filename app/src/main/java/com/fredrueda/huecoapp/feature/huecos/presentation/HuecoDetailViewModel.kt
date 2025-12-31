@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fredrueda.huecoapp.feature.huecos.data.repository.HuecoDetailRepository
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.ComentarioResponse
+import com.fredrueda.huecoapp.feature.report.data.remote.dto.CreateComentarioRequest
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,13 +22,45 @@ class HuecoDetailViewModel @Inject constructor(
     private val _comentarios = MutableStateFlow<List<ComentarioResponse>>(emptyList())
     val comentarios: StateFlow<List<ComentarioResponse>> = _comentarios
 
+    // Nuevo: total de comentarios (null si desconocido)
+    private val _comentariosCount = MutableStateFlow<Int?>(null)
+    val comentariosCount: StateFlow<Int?> = _comentariosCount
+
     private var currentPage = 1
     private var isLastPage = false
     private var isLoading = false
+    private var isPostingComentario = false
+
+    fun initializeWith(hueco: HuecoResponse) {
+        // Solo inicializar si aún no tenemos detalle cargado
+        if (_huecoDetail.value == null) {
+            _huecoDetail.value = hueco
+            // Si el hueco trae comentarios, inicializamos la lista local (tomamos hasta 3)
+            val initial = hueco.comentarios ?: emptyList()
+            if (initial.isNotEmpty() && _comentarios.value.isEmpty()) {
+                // ordenar por fecha descendente (más recientes primero) y tomar hasta 3
+                _comentarios.value = initial.sortedByDescending { it.fecha ?: "" }.take(3)
+            }
+            // Si el hueco trae un listado, usaremos su tamaño como conteo conocido
+            if (hueco.totalComentarios != null) {
+                _comentariosCount.value = hueco.totalComentarios
+            } else if (!hueco.comentarios.isNullOrEmpty()) {
+                _comentariosCount.value = hueco.comentarios.size
+            }
+            // no tocamos _comentariosCount: lo dejamos null hasta que hagamos la carga completa
+        }
+    }
 
     fun loadHuecoDetail(id: Int) {
         viewModelScope.launch {
-            _huecoDetail.value = repository.getHuecoDetail(id)
+            val detail = repository.getHuecoDetail(id)
+            _huecoDetail.value = detail
+            // Si aún no tenemos comentarios locales y el detalle trae comentarios, inicializamos los primeros 3
+            if (_comentarios.value.isEmpty() && !detail.comentarios.isNullOrEmpty()) {
+                _comentarios.value = detail.comentarios.sortedByDescending { it.fecha ?: "" }.take(3)
+                // actualizar conteo si el detalle trae total
+                if (detail.totalComentarios != null) _comentariosCount.value = detail.totalComentarios
+            }
         }
     }
 
@@ -37,9 +70,12 @@ class HuecoDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val response = repository.getComentarios(huecoId, page, pageSize)
             if (page == 1) {
-                _comentarios.value = response.results
+                // ordenar por fecha descendente para tener los más recientes primero
+                _comentarios.value = response.results.sortedByDescending { it.fecha ?: "" }
+                // actualizar el conteo total cuando se obtiene la página
+                _comentariosCount.value = response.count
             } else {
-                _comentarios.value = _comentarios.value + response.results
+                _comentarios.value = (_comentarios.value + response.results).sortedByDescending { it.fecha ?: "" }
             }
             currentPage = page
             isLastPage = response.next == null
@@ -57,6 +93,7 @@ class HuecoDetailViewModel @Inject constructor(
         currentPage = 1
         isLastPage = false
         _comentarios.value = emptyList()
+        _comentariosCount.value = null
     }
 
     fun toggleFollow(huecoId: Int, isFollowed: Boolean) {
@@ -64,6 +101,31 @@ class HuecoDetailViewModel @Inject constructor(
             val result = repository.toggleFollow(huecoId, isFollowed)
             if (result) {
                 _huecoDetail.value = _huecoDetail.value?.copy(isFollowed = !isFollowed)
+            }
+        }
+    }
+
+    fun postComentario(huecoId: Int, texto: String, imagen: String? = null) {
+        if (isPostingComentario) return
+        isPostingComentario = true
+        viewModelScope.launch {
+            try {
+                val request = CreateComentarioRequest(hueco = huecoId, texto = texto, imagen = imagen)
+                val created = repository.createComentario(request)
+                // Añadir al final de la lista actual sin refrescar
+                // Insertar y reordenar por fecha (por si el server devuelve fecha distinta)
+                _comentarios.value = (listOf(created) + _comentarios.value).sortedByDescending { it.fecha ?: "" }
+                // Actualizar conteo si ya lo conocíamos
+                _comentariosCount.value = (_comentariosCount.value ?: 0) + 1
+                // Actualizar huecoDetail si existe para reflejar nuevo comentario en el detalle
+                _huecoDetail.value = _huecoDetail.value?.let { current ->
+                    val existing = current.comentarios ?: emptyList()
+                    current.copy(comentarios = existing + created) // keep backend order if used elsewhere
+                }
+            } catch (e: Exception) {
+                // manejar error (log/mostrar mensaje) - por ahora no hacemos nada
+            } finally {
+                isPostingComentario = false
             }
         }
     }

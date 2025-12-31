@@ -20,6 +20,7 @@ fun HuecoHomeDto.toHuecoResponse(): HuecoResponse = HuecoResponse(
     vistas = null,
     imagen = imagen,
     comentarios = emptyList(),
+    totalComentarios = 0,
     confirmacionesCount = confirmacionesCount,
     validadoUsuario = null,
     miConfirmacion = null,

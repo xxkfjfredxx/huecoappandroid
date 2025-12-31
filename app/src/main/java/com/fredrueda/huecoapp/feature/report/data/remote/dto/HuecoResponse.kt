@@ -23,6 +23,7 @@ data class HuecoResponse(
     val vistas: Int?,
     val imagen: String?,
     val comentarios: List<ComentarioResponse>?,
+    @SerializedName("total_comentarios") val totalComentarios: Int?,
     @SerializedName("confirmaciones_count") val confirmacionesCount: Int?,
     @SerializedName("validado_usuario") val validadoUsuario: Boolean?,
     @SerializedName("mi_confirmacion") val miConfirmacion: MiConfirmacionResponse?,
@@ -40,6 +41,7 @@ data class ComentarioResponse(
     val fecha: String?
 ) : Parcelable
 
+// DTO para paginación de comentarios
 data class ComentarioPageResponse(
     val count: Int,
     val next: String?,
@@ -57,3 +59,10 @@ data class MiConfirmacionResponse(
     val fecha: String?,
     @SerializedName("voto") val voto: Boolean? // <-- AGREGADO
 ) : Parcelable
+
+// DTO para crear comentario (request body)
+data class CreateComentarioRequest(
+    val hueco: Int,
+    val texto: String,
+    val imagen: String? = null
+)

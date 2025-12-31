@@ -69,6 +69,7 @@ class HuecoResponseProvider : PreviewParameterProvider<HuecoResponse> {
             numeroCiclos = 0,
             gravedad = "Normal",
             vistas = 0,
+            totalComentarios = 1,
             ciudad = "Bogotá",
         )
     )
@@ -140,8 +141,9 @@ fun HuecoOverlayCard(
                     )
 
                     // Ajuste de nombres según tu archivo HuecoOverlayCard.kt
+                    val total = hueco.totalComentarios ?: hueco.comentarios?.size ?: 0
                     Text(
-                        text = "${hueco.comentarios!!.size ?: 0} comentarios",
+                        text = "${total} comentarios",
                         fontSize = 13.sp,
                         color = Color.Gray
                     )

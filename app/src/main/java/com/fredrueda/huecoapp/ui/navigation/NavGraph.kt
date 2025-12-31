@@ -185,7 +185,10 @@ fun AppNavGraph(
 
         // Pantalla de Detalle
         composable(Destinations.DetalleHueco.route) {
-            val hueco = navController.previousBackStackEntry?.savedStateHandle?.get<HuecoResponse>("hueco")
+            // Intentar obtener el hueco desde el savedStateHandle del entry anterior o del entry actual
+            val prev = navController.previousBackStackEntry?.savedStateHandle?.get<HuecoResponse>("hueco")
+            val curr = navController.currentBackStackEntry?.savedStateHandle?.get<HuecoResponse>("hueco")
+            val hueco = prev ?: curr
             if (hueco != null) {
                 HuecoDetailScreen(
                     hueco = hueco,
@@ -200,9 +203,10 @@ fun AppNavGraph(
             route = Destinations.Comentarios.route,
             arguments = listOf(navArgument("huecoId") { type = NavType.IntType })
         ) { backStackEntry ->
-            // Aquí llamarías a ComentariosScreen que diseñamos
+            // Obtener huecoId del argumento y mostrar ComentariosScreen
+            val huecoId = backStackEntry.arguments?.getInt("huecoId") ?: 0
             ComentariosScreen(
-                comentarios = emptyList(), // Aquí pasarías la lista de tu ViewModel
+                huecoId = huecoId,
                 onBackClick = { navController.popBackStack() }
             )
         }

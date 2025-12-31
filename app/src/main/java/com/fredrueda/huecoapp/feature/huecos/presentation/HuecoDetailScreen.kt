@@ -42,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,9 +80,19 @@ fun HuecoDetailScreen(
     val comentarios = viewModel.comentarios.collectAsState().value
     val huecoDetail = viewModel.huecoDetail.collectAsState().value ?: hueco
 
-    androidx.compose.runtime.LaunchedEffect(hueco.id) {
+    // Inicializar ViewModel con el hueco pasado para mantener los comentarios iniciales
+    LaunchedEffect(hueco.id) {
+        viewModel.initializeWith(hueco)
+        // Si el hueco pasado no trae comentarios, solicitamos el detalle para obtenerlos
+        if (hueco.comentarios.isNullOrEmpty()) {
+            viewModel.loadHuecoDetail(hueco.id)
+        }
+    }
+
+    // Lambda local que carga los comentarios y luego navega a la pantalla de comentarios
+    val seeComments = {
         viewModel.loadComentarios(hueco.id)
-        viewModel.loadHuecoDetail(hueco.id)
+        onSeeComments()
     }
 
     Scaffold(
@@ -127,7 +138,10 @@ fun HuecoDetailScreen(
                 Divider(color = HuecoBackgroundGray, thickness = 1.dp, modifier = Modifier.padding(vertical = 16.dp))
                 MiniMapSection(huecoDetail)
                 Spacer(modifier = Modifier.height(24.dp))
-                CommentsSection(comentarios, onSeeComments = onSeeComments)
+                val comentariosCount = viewModel.comentariosCount.collectAsState().value
+                // Priorizar el valor que trae el hueco (totalComentarios), si existe
+                val totalKnown = huecoDetail.totalComentarios ?: comentariosCount
+                CommentsSection(comentarios, comentariosCount = totalKnown, onSeeComments = seeComments)
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
@@ -356,7 +370,7 @@ fun MiniMapSection(hueco: HuecoResponse) {
 
 // 5. Sección de Comentarios
 @Composable
-fun CommentsSection(comentarios: List<ComentarioResponse>, onSeeComments: () -> Unit) {
+fun CommentsSection(comentarios: List<ComentarioResponse>, comentariosCount: Int? = null, onSeeComments: () -> Unit) {
     Column {
         // Cabecera de comentarios
         Row(
@@ -364,8 +378,10 @@ fun CommentsSection(comentarios: List<ComentarioResponse>, onSeeComments: () -> 
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val displayCount = comentariosCount ?: comentarios.size
+            // Mostrar el conteo real si el ViewModel lo tiene
             Text(
-                text = "Comentarios (${comentarios.size})",
+                text = "Comentarios ($displayCount)",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -374,12 +390,15 @@ fun CommentsSection(comentarios: List<ComentarioResponse>, onSeeComments: () -> 
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        if (comentarios.isNotEmpty()) {
+        // Mostrar hasta 3 comentarios (los que llegan desde el map)
+        val toShow = comentarios.take(3)
+        toShow.forEach { c ->
             CommentItem(
-                authorName = comentarios[0].usuarioNombre ?: "",
-                timeAgo = comentarios[0].fecha ?: "",
-                content = comentarios[0].texto ?: ""
+                authorName = c.usuarioNombre ?: "",
+                timeAgo = c.fecha ?: "",
+                content = c.texto ?: ""
             )
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }
@@ -537,6 +556,7 @@ fun HuecoDetailScreenPreview() {
         comentarios = listOf(
             ComentarioResponse(1, 2, "usuario1", "Buen reporte", null, "2025-12-27T12:00:00Z")
         ),
+        totalComentarios = 1,
         confirmacionesCount = 0,
         validadoUsuario = false,
         miConfirmacion = null,
