@@ -24,6 +24,14 @@ class HuecoDetailViewModel @Inject constructor(
     private val _comentarios = MutableStateFlow<List<ComentarioResponse>>(emptyList())
     val comentarios: StateFlow<List<ComentarioResponse>> = _comentarios
 
+    // Selección local de validación: 1 = sí existe, 0 = no existe, null = sin selección
+    private val _selectedValidation = MutableStateFlow<Int?>(null)
+    val selectedValidation: StateFlow<Int?> = _selectedValidation
+
+    // Selección local para confirmaciones de estado (ej. 5,6,7)
+    private val _selectedConfirmation = MutableStateFlow<Int?>(null)
+    val selectedConfirmation: StateFlow<Int?> = _selectedConfirmation
+
     // Nuevo: total de comentarios (null si desconocido)
     private val _comentariosCount = MutableStateFlow<Int?>(null)
     val comentariosCount: StateFlow<Int?> = _comentariosCount
@@ -39,6 +47,8 @@ class HuecoDetailViewModel @Inject constructor(
         // Solo inicializar si aún no tenemos detalle cargado
         if (_huecoDetail.value == null) {
             _huecoDetail.value = hueco
+            // inicializar selección de confirmación si existe
+            _selectedConfirmation.value = hueco.miConfirmacion?.nuevoEstado
             // Si el hueco trae comentarios, inicializamos la lista local (tomamos hasta 3)
             val initial = hueco.comentarios ?: emptyList()
             if (initial.isNotEmpty() && _comentarios.value.isEmpty()) {
@@ -59,6 +69,8 @@ class HuecoDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val detail = repository.getHuecoDetail(id)
             _huecoDetail.value = detail
+            // actualizar selección de confirmación según lo que traiga el detalle
+            _selectedConfirmation.value = detail.miConfirmacion?.nuevoEstado
             // Si aún no tenemos comentarios locales y el detalle trae comentarios, inicializamos los primeros 3
             if (_comentarios.value.isEmpty() && !detail.comentarios.isNullOrEmpty()) {
                 _comentarios.value = detail.comentarios.sortedByDescending { it.fecha ?: "" }.take(3)
@@ -139,13 +151,9 @@ class HuecoDetailViewModel @Inject constructor(
             when (val result = huecoRepository.validarHueco(huecoId, true)) {
                 is com.fredrueda.huecoapp.core.data.network.ApiResponse.Success -> {
                     val resp = result.data
-                    // actualizar huecoDetail
-                    _huecoDetail.value = _huecoDetail.value?.copy(
-                        validadoUsuario = true,
-                        miConfirmacion = resp,
-                        validacionesPositivas = (_huecoDetail.value?.validacionesPositivas ?: 0) + 1,
-                        faltanValidaciones = maxOf(0, 5 - ((_huecoDetail.value?.validacionesPositivas ?: 0) + 1))
-                    )
+                    // No marcar validadoUsuario aquí para que los botones no desaparezcan.
+                    // Solo guardamos la selección local para mostrar feedback inmediato.
+                    _selectedValidation.value = 1
                 }
                 is com.fredrueda.huecoapp.core.data.network.ApiResponse.HttpError -> {
                     // manejar errores según mensaje
@@ -162,11 +170,8 @@ class HuecoDetailViewModel @Inject constructor(
             when (val result = huecoRepository.validarHueco(huecoId, false)) {
                 is com.fredrueda.huecoapp.core.data.network.ApiResponse.Success -> {
                     val resp = result.data
-                    _huecoDetail.value = _huecoDetail.value?.copy(
-                        validadoUsuario = true,
-                        miConfirmacion = resp,
-                        validacionesNegativas = (_huecoDetail.value?.validacionesNegativas ?: 0) + 1
-                    )
+                    // No marcar validadoUsuario aquí; solo selección local
+                    _selectedValidation.value = 0
                 }
                 is com.fredrueda.huecoapp.core.data.network.ApiResponse.HttpError -> {
                 }
@@ -176,23 +181,41 @@ class HuecoDetailViewModel @Inject constructor(
         }
     }
 
+    // Permite limpiar selección local (por ejemplo al recargar detalle)
+    fun clearLocalValidationSelection() {
+        _selectedValidation.value = null
+    }
+
     fun confirmarEstado(huecoId: Int, nuevoEstado: Int) {
         if (_isConfirming.value) return
         _isConfirming.value = true
+        // marcar selección local inmediatamente
+        _selectedConfirmation.value = nuevoEstado
         viewModelScope.launch {
             when (val res = huecoRepository.confirmarHueco(huecoId, nuevoEstado)) {
                 is com.fredrueda.huecoapp.core.data.network.ApiResponse.Success -> {
                     val conf = res.data
-                    // actualizar huecoDetail
+                    // Actualizar miConfirmacion localmente con la respuesta del servidor,
+                    // pero NO cambiar el campo `estado` del huecoDetail aquí. El estado real
+                    // se actualizará cuando el backend propague el cambio y el detalle se recargue.
                     _huecoDetail.value = _huecoDetail.value?.copy(
-                        estado = mapEstadoIntToString(conf.nuevoEstado)
+                        miConfirmacion = com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse(
+                            id = conf.id,
+                            hueco = conf.hueco,
+                            usuario = conf.usuario,
+                            usuarioNombre = conf.usuarioNombre,
+                            confirmado = null,
+                            fecha = conf.fecha,
+                            voto = null,
+                            nuevoEstado = conf.nuevoEstado
+                        )
                     )
                 }
                 is com.fredrueda.huecoapp.core.data.network.ApiResponse.HttpError -> {
-                    // manejar error
+                    // manejar error (opcional: revertir selección local)
                 }
                 is com.fredrueda.huecoapp.core.data.network.ApiResponse.NetworkError -> {
-                    // manejar error de red
+                    // manejar error de red (opcional: revertir selección local)
                 }
             }
             _isConfirming.value = false

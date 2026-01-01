@@ -74,8 +74,6 @@ class MapViewModel @Inject constructor(
                             if (h.id == huecoId) {
                                 val nuevasPos = (h.validacionesPositivas ?: 0) + 1
                                 h.copy(
-                                    validadoUsuario = true,
-                                    miConfirmacion = result.data, // ACTUALIZA CON RESPUESTA
                                     validacionesPositivas = nuevasPos,
                                     faltanValidaciones = max(0, 5 - nuevasPos)
                                 )
@@ -121,8 +119,6 @@ class MapViewModel @Inject constructor(
                             if (h.id == huecoId) {
                                 val nuevasNeg = (h.validacionesNegativas ?: 0) + 1
                                 h.copy(
-                                    validadoUsuario = true,
-                                    miConfirmacion = result.data, // ACTUALIZA CON RESPUESTA
                                     validacionesNegativas = nuevasNeg
                                 )
                             } else h
