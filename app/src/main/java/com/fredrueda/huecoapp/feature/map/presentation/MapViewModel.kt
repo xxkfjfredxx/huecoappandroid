@@ -69,6 +69,26 @@ class MapViewModel @Inject constructor(
     // ---------- VALIDACIONES (pendiente_validacion) ----------
     fun validarHuecoExiste(huecoId: Int) {
         viewModelScope.launch {
+            // Optimistic update: marcar localmente que ya validó para mejorar la UX inmediata
+            val optimisticState = _uiState.value.let { state ->
+                val nuevos = state.huecos.map { h ->
+                    if (h.id == huecoId) h.copy(
+                        miConfirmacion = com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse(
+                            id = null,
+                            hueco = huecoId,
+                            usuario = null,
+                            usuarioNombre = null,
+                            confirmado = null,
+                            fecha = null,
+                            nuevoEstado = null
+                        ),
+                        validadoUsuario = true
+                    ) else h
+                }
+                state.copy(huecos = nuevos)
+            }
+            _uiState.value = optimisticState
+
             when (val result = huecoRepository.validarHueco(huecoId, true)) {
                 is ApiResponse.Success -> {
                     val resp = result.data
@@ -85,17 +105,22 @@ class MapViewModel @Inject constructor(
                         }
                         // además actualizar miConfirmacion indicando que este usuario votó positivo
                         val nuevosHuecosWithConf = nuevosHuecos.map { h ->
-                            if (h.id == huecoId) h.copy(miConfirmacion = com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse(
-                                id = resp.id,
-                                hueco = resp.hueco,
-                                usuario = resp.usuario,
-                                usuarioNombre = resp.usuarioNombre,
-                                confirmado = null,
-                                fecha = resp.fecha,
-                                nuevoEstado = resp.nuevoEstado
-                            )) else h
+                            if (h.id == huecoId) h.copy(
+                                miConfirmacion = com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse(
+                                    id = resp.id,
+                                    hueco = resp.hueco,
+                                    usuario = resp.usuario,
+                                    usuarioNombre = resp.usuarioNombre,
+                                    confirmado = null,
+                                    fecha = resp.fecha,
+                                    nuevoEstado = resp.nuevoEstado
+                                ),
+                                validadoUsuario = true
+                            ) else h
                         }
                         val nuevoSeleccionado = nuevosHuecosWithConf.find { it.id == huecoId }
+                        // Log para depuración: mostrar miConfirmacion y validadoUsuario tras actualizar
+                        Log.d("MapViewModel", "validarHuecoExiste success resp=$resp nuevoSeleccionado.miConfirmacion=${nuevoSeleccionado?.miConfirmacion} validadoUsuario=${nuevoSeleccionado?.validadoUsuario}")
                         state.copy(
                             huecos = nuevosHuecosWithConf,
                             selectedHueco = nuevoSeleccionado,
@@ -106,6 +131,13 @@ class MapViewModel @Inject constructor(
                     }
                 }
                 is ApiResponse.HttpError -> {
+                    // Revertir optimistic update si fue un error no esperado
+                    if (result.message?.contains("Ya has validado este hueco") != true) {
+                        // Revertir: quitar miConfirmacion.voto para ese hueco
+                        _uiState.value = _uiState.value.copy(
+                            huecos = _uiState.value.huecos.map { h -> if (h.id == huecoId) h.copy(miConfirmacion = null, validadoUsuario = null) else h }
+                        )
+                    }
                     if (result.message?.contains("Ya has validado este hueco") == true) {
                         _uiState.value = _uiState.value.copy(
                             mensaje = "Ya validaste este hueco 👍",
@@ -118,7 +150,9 @@ class MapViewModel @Inject constructor(
                     }
                 }
                 is ApiResponse.NetworkError -> {
+                    // Revertir optimistic update en caso de fallo de red
                     _uiState.value = _uiState.value.copy(
+                        huecos = _uiState.value.huecos.map { h -> if (h.id == huecoId) h.copy(miConfirmacion = null, validadoUsuario = null) else h },
                         mensaje = "Error de red"
                     )
                 }
@@ -128,6 +162,13 @@ class MapViewModel @Inject constructor(
 
     fun validarHuecoNoExiste(huecoId: Int) {
         viewModelScope.launch {
+            // Optimistic update: marcar localmente voto negativo
+            _uiState.value = _uiState.value.copy(
+                huecos = _uiState.value.huecos.map { h -> if (h.id == huecoId) h.copy(miConfirmacion = com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse(
+                    id = null, hueco = huecoId, usuario = null, usuarioNombre = null, confirmado = null, fecha = null, nuevoEstado = null
+                ), validadoUsuario = true) else h }
+            )
+
             when (val result = huecoRepository.validarHueco(huecoId, false)) {
                 is ApiResponse.Success -> {
                     val resp = result.data
@@ -141,17 +182,21 @@ class MapViewModel @Inject constructor(
                             } else h
                         }
                         val nuevosHuecosWithConf = nuevosHuecos.map { h ->
-                            if (h.id == huecoId) h.copy(miConfirmacion = com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse(
-                                id = resp.id,
-                                hueco = resp.hueco,
-                                usuario = resp.usuario,
-                                usuarioNombre = resp.usuarioNombre,
-                                confirmado = null,
-                                fecha = resp.fecha,
-                                nuevoEstado = resp.nuevoEstado
-                            )) else h
+                            if (h.id == huecoId) h.copy(
+                                miConfirmacion = com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse(
+                                    id = resp.id,
+                                    hueco = resp.hueco,
+                                    usuario = resp.usuario,
+                                    usuarioNombre = resp.usuarioNombre,
+                                    confirmado = null,
+                                    fecha = resp.fecha,
+                                    nuevoEstado = resp.nuevoEstado
+                                ),
+                                validadoUsuario = true
+                            ) else h
                         }
                         val nuevoSeleccionado = nuevosHuecosWithConf.find { it.id == huecoId }
+                        Log.d("MapViewModel", "validarHuecoNoExiste success resp=$resp nuevoSeleccionado.miConfirmacion=${nuevoSeleccionado?.miConfirmacion} validadoUsuario=${nuevoSeleccionado?.validadoUsuario}")
                         state.copy(
                             huecos = nuevosHuecosWithConf,
                             selectedHueco = nuevoSeleccionado,
@@ -162,6 +207,12 @@ class MapViewModel @Inject constructor(
                     }
                 }
                 is ApiResponse.HttpError -> {
+                    // Revertir optimistic update si no es un mensaje esperado
+                    if (result.message?.contains("Ya has validado este hueco") != true) {
+                        _uiState.value = _uiState.value.copy(
+                            huecos = _uiState.value.huecos.map { h -> if (h.id == huecoId) h.copy(miConfirmacion = null, validadoUsuario = null) else h }
+                        )
+                    }
                     if (result.message?.contains("Ya has validado este hueco") == true) {
                         _uiState.value = _uiState.value.copy(
                             mensaje = "Ya validaste este hueco 👍",
@@ -174,7 +225,9 @@ class MapViewModel @Inject constructor(
                     }
                 }
                 is ApiResponse.NetworkError -> {
+                    // Revertir optimistic update
                     _uiState.value = _uiState.value.copy(
+                        huecos = _uiState.value.huecos.map { h -> if (h.id == huecoId) h.copy(miConfirmacion = null, validadoUsuario = null) else h },
                         mensaje = "Error de red"
                     )
                 }

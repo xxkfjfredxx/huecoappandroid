@@ -209,10 +209,10 @@ private fun MapScreenContent(
                                 ) {
                                     HuecoOverlayCard(
                                         hueco = hueco,
-                                        onClose = { closeInfoWindow() },
+                                        onClose = { cerrarOverlay() },
                                         onToggleSeguir = { viewModel.toggleFollow(hueco.id, hueco.isFollowed == true) },
                                         onVerDetalle = {
-                                            closeInfoWindow()
+                                            cerrarOverlay()
                                             onNavigateToDetail(hueco)
                                         },
                                         onValidarSiExiste = { onValidarHuecoExiste(hueco.id) },
@@ -254,13 +254,40 @@ private fun MapScreenContent(
                             }
                             if (marker != null) {
                                 Log.d("MapScreen", "Reabriendo InfoWindow para marker id=$huecoId")
+                                // Obtener el hueco más reciente desde el state para re-crear el contenido del InfoWindow
+                                val latestHueco = state.huecos.find { it.id == huecoId } ?: state.selectedHueco
                                 InfoWindow.closeAllInfoWindowsOn(map)
                                 android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                    // Si tenemos el hueco actualizado, recreamos el infoWindow con su contenido
+                                    if (latestHueco != null) {
+                                        marker.infoWindow = HuecoInfoWindow(
+                                            context = context,
+                                            mapView = map,
+                                            onClosed = { cerrarOverlay() },
+                                        ) {
+                                            HuecoOverlayCard(
+                                                hueco = latestHueco,
+                                                onClose = { cerrarOverlay() },
+                                                onToggleSeguir = { viewModel.toggleFollow(latestHueco.id, latestHueco.isFollowed == true) },
+                                                onVerDetalle = {
+                                                    cerrarOverlay()
+                                                    onNavigateToDetail(latestHueco)
+                                                },
+                                                onValidarSiExiste = { onValidarHuecoExiste(latestHueco.id) },
+                                                onValidarNoExiste = { onValidarHuecoNoExiste(latestHueco.id) },
+                                                onReparado = { onReportarReparado(latestHueco.id) },
+                                                onAbierto = { onReportarAbierto(latestHueco.id) },
+                                                onCerrado = { onReportarCerrado(latestHueco.id) }
+                                            )
+                                        }
+                                    }
                                     marker.showInfoWindow()
                                     map.controller.animateTo(marker.position)
+                                    // Forzar re-dibujo para asegurar que el contenido del InfoWindow se actualice
+                                    map.invalidate()
                                     lastReopenHuecoId = null
                                     viewModel.limpiarReopenInfoWindow()
-                                }, 350)
+                                }, 700)
                             } else {
                                 Log.w("MapScreen", "No se encontró marker para id=$huecoId al intentar reabrir InfoWindow")
                                 lastReopenHuecoId = null
