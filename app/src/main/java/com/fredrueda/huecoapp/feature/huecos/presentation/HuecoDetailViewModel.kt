@@ -1,5 +1,6 @@
 package com.fredrueda.huecoapp.feature.huecos.presentation
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fredrueda.huecoapp.feature.huecos.data.repository.HuecoDetailRepository
@@ -44,11 +45,14 @@ class HuecoDetailViewModel @Inject constructor(
     val isConfirming: StateFlow<Boolean> = _isConfirming
 
     fun initializeWith(hueco: HuecoResponse) {
-        // Solo inicializar si aún no tenemos detalle cargado
+        // Actualizar selección de confirmación siempre con lo que venga al navegar
+        _selectedConfirmation.value = hueco.miConfirmacion?.nuevoEstado
+        Log.d("HuecoDetailVM", "initializeWith: miConfirmacion=${hueco.miConfirmacion}")
+
+        // Solo setear el detalle completo si aún no lo tenemos; evitar sobreescribir
+        // un detalle ya cargado desde servidor.
         if (_huecoDetail.value == null) {
             _huecoDetail.value = hueco
-            // inicializar selección de confirmación si existe
-            _selectedConfirmation.value = hueco.miConfirmacion?.nuevoEstado
             // Si el hueco trae comentarios, inicializamos la lista local (tomamos hasta 3)
             val initial = hueco.comentarios ?: emptyList()
             if (initial.isNotEmpty() && _comentarios.value.isEmpty()) {
@@ -61,7 +65,6 @@ class HuecoDetailViewModel @Inject constructor(
             } else if (!hueco.comentarios.isNullOrEmpty()) {
                 _comentariosCount.value = hueco.comentarios.size
             }
-            // no tocamos _comentariosCount: lo dejamos null hasta que hagamos la carga completa
         }
     }
 

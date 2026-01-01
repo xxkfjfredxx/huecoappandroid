@@ -1,5 +1,6 @@
 package com.fredrueda.huecoapp.feature.home.data.remote.dto
 
+import com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse
 import com.google.gson.annotations.SerializedName
 
 data class HuecoHomeDto(
@@ -24,7 +25,9 @@ data class HuecoHomeDto(
     val imagen: String?,
     val comentarios: List<CommentHomeDto>?,
     @SerializedName("confirmaciones_count")
-    val confirmacionesCount: Int?
+    val confirmacionesCount: Int?,
+    @SerializedName("mi_confirmacion")
+    val miConfirmacion: MiConfirmacionResponse?
 )
 
 data class CommentHomeDto(

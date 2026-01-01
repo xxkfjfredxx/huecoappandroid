@@ -23,7 +23,7 @@ fun HuecoHomeDto.toHuecoResponse(): HuecoResponse = HuecoResponse(
     totalComentarios = 0,
     confirmacionesCount = confirmacionesCount,
     validadoUsuario = null,
-    miConfirmacion = null,
+    miConfirmacion = miConfirmacion,
     faltanValidaciones = null,
     isFollowed = null
 )
