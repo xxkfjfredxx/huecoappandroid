@@ -172,7 +172,8 @@ fun AppNavGraph(
                 onLogout = { sessionViewModel.logout() },
                 onNavigateToMap = { navController.navigate("report")},
                 onNavigateToDetail = { hueco ->
-                    Log.e("HUECO", "usuario_nombre: $hueco") // Verifica aquí
+                    // Log detallado para depuración: confirmar que se pasan comentarios y miConfirmacion
+                    Log.d("NavGraph", "Navegando a detalle: id=${hueco.id} comentarios=${hueco.comentarios?.size ?: 0} totalComentarios=${hueco.totalComentarios} miConfirmacion=${hueco.miConfirmacion}")
                     navController.currentBackStackEntry?.savedStateHandle?.set("hueco", hueco)
                     navController.navigate(Destinations.DetalleHueco.route)
                 }

@@ -82,9 +82,9 @@ fun HuecoDetailScreen(
     // Inicializar ViewModel con el hueco pasado para mantener los comentarios iniciales
     LaunchedEffect(hueco.id) {
         viewModel.initializeWith(hueco)
-        // Evitar llamar al detalle si ya tenemos datos pasados desde el mapa.
-        // Solo solicitar detalle si no vienen ni comentarios ni totalComentarios.
-        if (hueco.comentarios == null && hueco.totalComentarios == null) {
+        // Si no tenemos comentarios (nulos o vacíos) y no conocemos el total, solicitar detalle
+        // Esto cubre el caso en el que Home puede devolver lista vacía y queremos cargar desde API
+        if (hueco.comentarios.isNullOrEmpty() && hueco.totalComentarios == null) {
             viewModel.loadHuecoDetail(hueco.id)
         }
     }

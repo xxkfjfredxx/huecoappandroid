@@ -1,5 +1,6 @@
 package com.fredrueda.huecoapp.feature.home.data.remote.dto
 
+import com.fredrueda.huecoapp.feature.report.data.remote.dto.ComentarioResponse
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
 
 fun HuecoHomeDto.toHuecoResponse(): HuecoResponse = HuecoResponse(
@@ -19,8 +20,17 @@ fun HuecoHomeDto.toHuecoResponse(): HuecoResponse = HuecoResponse(
     gravedad = null,
     vistas = null,
     imagen = imagen,
-    comentarios = emptyList(),
-    totalComentarios = 0,
+    comentarios = comentarios?.map { c ->
+        ComentarioResponse(
+            id = c.id,
+            usuario = c.usuario,
+            usuarioNombre = c.usuarioNombre,
+            texto = c.texto,
+            imagen = c.imagen,
+            fecha = c.fecha
+        )
+    } ?: emptyList(),
+    totalComentarios = comentarios?.size ?: 0,
     confirmacionesCount = confirmacionesCount,
     validadoUsuario = null,
     miConfirmacion = miConfirmacion,
