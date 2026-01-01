@@ -1,5 +1,6 @@
 package com.fredrueda.huecoapp.feature.map.presentation
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fredrueda.huecoapp.core.data.network.ApiResponse
@@ -57,6 +58,7 @@ class MapViewModel @Inject constructor(
 
     // ---------- Selección de hueco para overlay ----------
     fun seleccionarHueco(hueco: HuecoResponse) {
+        Log.d("MapViewModel", "seleccionarHueco: id=${hueco.id} miConfirmacion=${hueco.miConfirmacion}")
         _uiState.value = _uiState.value.copy(selectedHueco = hueco)
     }
 
@@ -171,12 +173,23 @@ class MapViewModel @Inject constructor(
                     val conf = res.data
                     // actualizar huecos en estado
                     _uiState.value = _uiState.value.let { state ->
-                        val nuevosHuecos = state.huecos.map { h ->
-                            if (h.id == huecoId) h.copy(estado = mapEstadoIntToString(conf.nuevoEstado)) else h
+                        // No cambiar `estado` aquí: solo actualizar la confirmación del usuario
+                        val nuevosHuecosWithConf = state.huecos.map { h ->
+                            if (h.id == huecoId) h.copy(miConfirmacion = com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse(
+                                id = conf.id,
+                                hueco = conf.hueco,
+                                usuario = conf.usuario,
+                                usuarioNombre = conf.usuarioNombre,
+                                confirmado = null,
+                                fecha = conf.fecha,
+                                voto = null,
+                                nuevoEstado = conf.nuevoEstado
+                            )) else h
                         }
-                        val nuevoSeleccionado = nuevosHuecos.find { it.id == huecoId }
-                        state.copy(huecos = nuevosHuecos, selectedHueco = nuevoSeleccionado, mensaje = "Estado actualizado")
-                    }
+                        val nuevoSel = nuevosHuecosWithConf.find { it.id == huecoId }
+                        Log.d("MapViewModel", "reportarReparado: huecoId=$huecoId nuevoEstado=${conf.nuevoEstado}")
+                        state.copy(huecos = nuevosHuecosWithConf, selectedHueco = nuevoSel, mensaje = "Estado actualizado", closeInfoWindow = true, reopenInfoWindowId = huecoId)
+                     }
                 }
                 is ApiResponse.HttpError -> _uiState.value = _uiState.value.copy(mensaje = "Error al actualizar estado")
                 is ApiResponse.NetworkError -> _uiState.value = _uiState.value.copy(mensaje = "Error de red")
@@ -191,19 +204,30 @@ class MapViewModel @Inject constructor(
                 is ApiResponse.Success -> {
                     val conf = res.data
                     _uiState.value = _uiState.value.let { state ->
-                        val nuevosHuecos = state.huecos.map { h ->
-                            if (h.id == huecoId) h.copy(estado = mapEstadoIntToString(conf.nuevoEstado)) else h
+                        // Solo actualizar miConfirmacion sin tocar el estado
+                        val nuevosHuecosWithConf = state.huecos.map { h ->
+                            if (h.id == huecoId) h.copy(miConfirmacion = com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse(
+                                id = conf.id,
+                                hueco = conf.hueco,
+                                usuario = conf.usuario,
+                                usuarioNombre = conf.usuarioNombre,
+                                confirmado = null,
+                                fecha = conf.fecha,
+                                voto = null,
+                                nuevoEstado = conf.nuevoEstado
+                            )) else h
                         }
-                        val nuevoSeleccionado = nuevosHuecos.find { it.id == huecoId }
-                        state.copy(huecos = nuevosHuecos, selectedHueco = nuevoSeleccionado, mensaje = "Estado actualizado")
+                        val nuevoSeleccionado = nuevosHuecosWithConf.find { it.id == huecoId }
+                        Log.d("MapViewModel", "reportarAbierto: huecoId=$huecoId nuevoEstado=${conf.nuevoEstado}")
+                        state.copy(huecos = nuevosHuecosWithConf, selectedHueco = nuevoSeleccionado, mensaje = "Estado actualizado", closeInfoWindow = true, reopenInfoWindowId = huecoId)
                     }
-                }
-                is ApiResponse.HttpError -> _uiState.value = _uiState.value.copy(mensaje = "Error al actualizar estado")
-                is ApiResponse.NetworkError -> _uiState.value = _uiState.value.copy(mensaje = "Error de red")
-            }
-            cerrarOverlay()
-        }
-    }
+                 }
+                 is ApiResponse.HttpError -> _uiState.value = _uiState.value.copy(mensaje = "Error al actualizar estado")
+                 is ApiResponse.NetworkError -> _uiState.value = _uiState.value.copy(mensaje = "Error de red")
+             }
+             cerrarOverlay()
+         }
+     }
 
     fun reportarCerrado(huecoId: Int) {
         viewModelScope.launch {
@@ -211,19 +235,30 @@ class MapViewModel @Inject constructor(
                 is ApiResponse.Success -> {
                     val conf = res.data
                     _uiState.value = _uiState.value.let { state ->
-                        val nuevosHuecos = state.huecos.map { h ->
-                            if (h.id == huecoId) h.copy(estado = mapEstadoIntToString(conf.nuevoEstado)) else h
+                        // Solo actualizar miConfirmacion sin tocar el estado
+                        val nuevosHuecosWithConf = state.huecos.map { h ->
+                            if (h.id == huecoId) h.copy(miConfirmacion = com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse(
+                                id = conf.id,
+                                hueco = conf.hueco,
+                                usuario = conf.usuario,
+                                usuarioNombre = conf.usuarioNombre,
+                                confirmado = null,
+                                fecha = conf.fecha,
+                                voto = null,
+                                nuevoEstado = conf.nuevoEstado
+                            )) else h
                         }
-                        val nuevoSeleccionado = nuevosHuecos.find { it.id == huecoId }
-                        state.copy(huecos = nuevosHuecos, selectedHueco = nuevoSeleccionado, mensaje = "Estado actualizado")
+                        val nuevoSeleccionado = nuevosHuecosWithConf.find { it.id == huecoId }
+                        Log.d("MapViewModel", "reportarCerrado: huecoId=$huecoId nuevoEstado=${conf.nuevoEstado}")
+                        state.copy(huecos = nuevosHuecosWithConf, selectedHueco = nuevoSeleccionado, mensaje = "Estado actualizado", closeInfoWindow = true, reopenInfoWindowId = huecoId)
                     }
-                }
-                is ApiResponse.HttpError -> _uiState.value = _uiState.value.copy(mensaje = "Error al actualizar estado")
-                is ApiResponse.NetworkError -> _uiState.value = _uiState.value.copy(mensaje = "Error de red")
-            }
-            cerrarOverlay()
-        }
-    }
+                 }
+                 is ApiResponse.HttpError -> _uiState.value = _uiState.value.copy(mensaje = "Error al actualizar estado")
+                 is ApiResponse.NetworkError -> _uiState.value = _uiState.value.copy(mensaje = "Error de red")
+             }
+             cerrarOverlay()
+         }
+     }
 
     private fun mapEstadoIntToString(estado: Int): String {
         return when (estado) {

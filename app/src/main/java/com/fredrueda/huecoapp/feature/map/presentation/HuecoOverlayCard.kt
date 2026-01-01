@@ -213,9 +213,32 @@ fun HuecoOverlayCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        SmallStateButton("Reparado", Color(0xFF4CAF50), Modifier.weight(1f), onReparado)
-                        SmallStateButton("En Reparación", Color(0xFFFF9800), Modifier.weight(1f), onAbierto)
-                        SmallStateButton("Cerrado", Color(0xFF2196F3), Modifier.weight(1f), onCerrado)
+                        // Determinar si el hueco tiene una confirmación del usuario y marcar el botón correspondiente
+                        val selectedConf = hueco.miConfirmacion?.nuevoEstado
+                        val reparadoSelected = selectedConf == 7
+                        val enReparacionSelected = selectedConf == 6
+                        val cerradoSelected = selectedConf == 5
+
+                        SmallStateButton(
+                            "Reparado",
+                            if (reparadoSelected) Color(0xFFE0E0E0) else Color(0xFF4CAF50),
+                            Modifier.weight(1f),
+                            onReparado
+                        )
+
+                        SmallStateButton(
+                            "En Reparación",
+                            if (enReparacionSelected) Color(0xFFE0E0E0) else Color(0xFFFF9800),
+                            Modifier.weight(1f),
+                            onAbierto
+                        )
+
+                        SmallStateButton(
+                            "Cerrado",
+                            if (cerradoSelected) Color(0xFFE0E0E0) else Color(0xFF2196F3),
+                            Modifier.weight(1f),
+                            onCerrado
+                        )
                     }
                 }
             }
