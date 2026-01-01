@@ -157,6 +157,18 @@ class HuecoDetailViewModel @Inject constructor(
                     // No marcar validadoUsuario aquí para que los botones no desaparezcan.
                     // Solo guardamos la selección local para mostrar feedback inmediato.
                     _selectedValidation.value = 1
+                    // Actualizar miConfirmacion localmente para indicar que el usuario votó (positivo)
+                    _huecoDetail.value = _huecoDetail.value?.copy(
+                        miConfirmacion = com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse(
+                            id = resp.id,
+                            hueco = resp.hueco,
+                            usuario = resp.usuario,
+                            usuarioNombre = resp.usuarioNombre,
+                            confirmado = null,
+                            fecha = resp.fecha,
+                            nuevoEstado = null
+                        )
+                    )
                 }
                 is com.fredrueda.huecoapp.core.data.network.ApiResponse.HttpError -> {
                     // manejar errores según mensaje
@@ -175,6 +187,18 @@ class HuecoDetailViewModel @Inject constructor(
                     val resp = result.data
                     // No marcar validadoUsuario aquí; solo selección local
                     _selectedValidation.value = 0
+                    // Actualizar miConfirmacion localmente para indicar que el usuario votó (negativo)
+                    _huecoDetail.value = _huecoDetail.value?.copy(
+                        miConfirmacion = com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse(
+                            id = resp.id,
+                            hueco = resp.hueco,
+                            usuario = resp.usuario,
+                            usuarioNombre = resp.usuarioNombre,
+                            confirmado = null,
+                            fecha = resp.fecha,
+                            nuevoEstado = null
+                        )
+                    )
                 }
                 is com.fredrueda.huecoapp.core.data.network.ApiResponse.HttpError -> {
                 }
@@ -209,7 +233,6 @@ class HuecoDetailViewModel @Inject constructor(
                             usuarioNombre = conf.usuarioNombre,
                             confirmado = null,
                             fecha = conf.fecha,
-                            voto = null,
                             nuevoEstado = conf.nuevoEstado
                         )
                     )

@@ -173,7 +173,7 @@ fun AppNavGraph(
                 onNavigateToMap = { navController.navigate("report")},
                 onNavigateToDetail = { hueco ->
                     // Log detallado para depuración: confirmar que se pasan comentarios y miConfirmacion
-                    Log.d("NavGraph", "Navegando a detalle: id=${hueco.id} comentarios=${hueco.comentarios?.size ?: 0} totalComentarios=${hueco.totalComentarios} miConfirmacion=${hueco.miConfirmacion}")
+                    Log.d("NavGraph", "Navegando a detalle: id=${hueco.id} comentarios=${hueco.comentarios?.size ?: 0} totalComentarios=${hueco.totalComentarios} faltanValidaciones=${hueco.faltanValidaciones} miConfirmacion=${hueco.miConfirmacion}")
                     navController.currentBackStackEntry?.savedStateHandle?.set("hueco", hueco)
                     navController.navigate(Destinations.DetalleHueco.route)
                 }

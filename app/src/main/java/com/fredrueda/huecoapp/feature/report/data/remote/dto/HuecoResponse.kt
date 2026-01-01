@@ -57,7 +57,6 @@ data class MiConfirmacionResponse(
     @SerializedName("usuario_nombre") val usuarioNombre: String?,
     val confirmado: Boolean?,
     val fecha: String?,
-    @SerializedName("voto") val voto: Boolean?, // <-- AGREGADO
     @SerializedName("nuevo_estado") val nuevoEstado: Int? // nuevo campo que puede venir
 ) : Parcelable
 

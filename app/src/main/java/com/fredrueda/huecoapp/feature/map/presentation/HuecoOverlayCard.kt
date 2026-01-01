@@ -256,7 +256,7 @@ fun ValidationSection(hueco: HuecoResponse, onPositivo: () -> Unit, onNegativo: 
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Mostrar mensaje si ya validó o si el voto es true (validación positiva)
-        if (hueco.validadoUsuario == true || hueco.miConfirmacion?.voto == true) {
+        if (hueco.validadoUsuario == true) {
             Text(
                 "Ya validaste este hueco. Gracias 🙌",
                 fontSize = 13.sp,

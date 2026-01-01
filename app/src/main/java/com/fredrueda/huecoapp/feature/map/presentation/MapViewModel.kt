@@ -71,7 +71,9 @@ class MapViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = huecoRepository.validarHueco(huecoId, true)) {
                 is ApiResponse.Success -> {
+                    val resp = result.data
                     _uiState.value = _uiState.value.let { state ->
+                        // incrementar contador positivo
                         val nuevosHuecos = state.huecos.map { h ->
                             if (h.id == huecoId) {
                                 val nuevasPos = (h.validacionesPositivas ?: 0) + 1
@@ -81,9 +83,21 @@ class MapViewModel @Inject constructor(
                                 )
                             } else h
                         }
-                        val nuevoSeleccionado = nuevosHuecos.find { it.id == huecoId }
+                        // además actualizar miConfirmacion indicando que este usuario votó positivo
+                        val nuevosHuecosWithConf = nuevosHuecos.map { h ->
+                            if (h.id == huecoId) h.copy(miConfirmacion = com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse(
+                                id = resp.id,
+                                hueco = resp.hueco,
+                                usuario = resp.usuario,
+                                usuarioNombre = resp.usuarioNombre,
+                                confirmado = null,
+                                fecha = resp.fecha,
+                                nuevoEstado = resp.nuevoEstado
+                            )) else h
+                        }
+                        val nuevoSeleccionado = nuevosHuecosWithConf.find { it.id == huecoId }
                         state.copy(
-                            huecos = nuevosHuecos,
+                            huecos = nuevosHuecosWithConf,
                             selectedHueco = nuevoSeleccionado,
                             mensaje = "¡Gracias por validar este hueco! 🙌",
                             closeInfoWindow = true,
@@ -116,6 +130,7 @@ class MapViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = huecoRepository.validarHueco(huecoId, false)) {
                 is ApiResponse.Success -> {
+                    val resp = result.data
                     _uiState.value = _uiState.value.let { state ->
                         val nuevosHuecos = state.huecos.map { h ->
                             if (h.id == huecoId) {
@@ -125,9 +140,20 @@ class MapViewModel @Inject constructor(
                                 )
                             } else h
                         }
-                        val nuevoSeleccionado = nuevosHuecos.find { it.id == huecoId }
+                        val nuevosHuecosWithConf = nuevosHuecos.map { h ->
+                            if (h.id == huecoId) h.copy(miConfirmacion = com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse(
+                                id = resp.id,
+                                hueco = resp.hueco,
+                                usuario = resp.usuario,
+                                usuarioNombre = resp.usuarioNombre,
+                                confirmado = null,
+                                fecha = resp.fecha,
+                                nuevoEstado = resp.nuevoEstado
+                            )) else h
+                        }
+                        val nuevoSeleccionado = nuevosHuecosWithConf.find { it.id == huecoId }
                         state.copy(
-                            huecos = nuevosHuecos,
+                            huecos = nuevosHuecosWithConf,
                             selectedHueco = nuevoSeleccionado,
                             mensaje = "Gracias por tu validación 🙌",
                             closeInfoWindow = true, // activa bandera para cerrar InfoWindow
@@ -182,7 +208,6 @@ class MapViewModel @Inject constructor(
                                 usuarioNombre = conf.usuarioNombre,
                                 confirmado = null,
                                 fecha = conf.fecha,
-                                voto = null,
                                 nuevoEstado = conf.nuevoEstado
                             )) else h
                         }
@@ -213,7 +238,6 @@ class MapViewModel @Inject constructor(
                                 usuarioNombre = conf.usuarioNombre,
                                 confirmado = null,
                                 fecha = conf.fecha,
-                                voto = null,
                                 nuevoEstado = conf.nuevoEstado
                             )) else h
                         }
@@ -244,7 +268,6 @@ class MapViewModel @Inject constructor(
                                 usuarioNombre = conf.usuarioNombre,
                                 confirmado = null,
                                 fecha = conf.fecha,
-                                voto = null,
                                 nuevoEstado = conf.nuevoEstado
                             )) else h
                         }

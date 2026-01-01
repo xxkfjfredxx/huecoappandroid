@@ -140,9 +140,19 @@ fun HuecoDetailScreen(
                 MiniMapSection(huecoDetail)
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // Mostrar información de depuración si hay datos relevantes (miConfirmacion o faltanValidaciones)
+                if (huecoDetail.miConfirmacion != null || huecoDetail.faltanValidaciones != null) {
+                    Text(
+                        text = "DEBUG: validadoUsuario=${huecoDetail.validadoUsuario} faltan=${huecoDetail.faltanValidaciones}",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
                 // Normalizar estado y decidir UI
                 val estadoInternal = mapEstadoValueToInternal(huecoDetail.estado)
-                val needsValidation = estadoInternal == "pendiente_validacion" && (huecoDetail.validadoUsuario != true && huecoDetail.miConfirmacion?.voto != true)
+                val needsValidation = estadoInternal == "pendiente_validacion" && (huecoDetail.validadoUsuario != true)
                 if (needsValidation) {
                     Text("Ayuda a validar. Faltan ${huecoDetail.faltanValidaciones ?: 0} personas")
                     Spacer(modifier = Modifier.height(12.dp))
@@ -165,7 +175,7 @@ fun HuecoDetailScreen(
                     }
                 } else {
                     // Si ya validó o no está pendiente, mostrar mensaje de agradecimiento cuando aplicable
-                    val showed = (huecoDetail.validadoUsuario == true || huecoDetail.miConfirmacion?.voto == true)
+                    val showed = (huecoDetail.validadoUsuario == true)
                     if (estadoInternal == "pendiente_validacion" && showed) {
                         Text("Ya validaste este hueco. Gracias 🙌", color = Color(0xFF4CAF50))
                     }

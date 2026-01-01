@@ -26,6 +26,12 @@ data class HuecoHomeDto(
     val comentarios: List<CommentHomeDto>?,
     @SerializedName("confirmaciones_count")
     val confirmacionesCount: Int?,
+    @SerializedName("faltan_validaciones")
+    val faltanValidaciones: Int?,
+    @SerializedName("validado_usuario")
+    val validadoUsuario: Boolean?,
+    @SerializedName("total_comentarios")
+    val totalComentarios: Int?,
     @SerializedName("mi_confirmacion")
     val miConfirmacion: MiConfirmacionResponse?
 )

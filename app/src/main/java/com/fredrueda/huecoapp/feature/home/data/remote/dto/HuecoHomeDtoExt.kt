@@ -2,6 +2,7 @@ package com.fredrueda.huecoapp.feature.home.data.remote.dto
 
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.ComentarioResponse
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
+import kotlin.math.max
 
 fun HuecoHomeDto.toHuecoResponse(): HuecoResponse = HuecoResponse(
     id = id,
@@ -30,10 +31,12 @@ fun HuecoHomeDto.toHuecoResponse(): HuecoResponse = HuecoResponse(
             fecha = c.fecha
         )
     } ?: emptyList(),
-    totalComentarios = comentarios?.size ?: 0,
+    // Priorizar el contador que venga de la API (total_comentarios). Si no viene usar el tamaño del arreglo.
+    totalComentarios = totalComentarios ?: comentarios?.size ?: 0,
     confirmacionesCount = confirmacionesCount,
-    validadoUsuario = null,
+    validadoUsuario = validadoUsuario,
     miConfirmacion = miConfirmacion,
-    faltanValidaciones = null,
+    // mapear faltanValidaciones si vino del DTO; si no viene, calcularlo a partir de validaciones positivas
+    faltanValidaciones = faltanValidaciones ?: max(0, 5 - (validacionesPos ?: 0)),
     isFollowed = null
 )
