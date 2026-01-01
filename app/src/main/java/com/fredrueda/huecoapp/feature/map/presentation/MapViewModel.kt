@@ -170,22 +170,75 @@ class MapViewModel @Inject constructor(
     // ---------- CONFIRMACIONES (activo → reparado/abierto/cerrado) ----------
     fun reportarReparado(huecoId: Int) {
         viewModelScope.launch {
-            huecoRepository.confirmarHueco(huecoId, confirmado = false)
+            when (val res = huecoRepository.confirmarHueco(huecoId, 7)) { // 7 = Reparado
+                is ApiResponse.Success -> {
+                    val conf = res.data
+                    // actualizar huecos en estado
+                    _uiState.value = _uiState.value.let { state ->
+                        val nuevosHuecos = state.huecos.map { h ->
+                            if (h.id == huecoId) h.copy(estado = mapEstadoIntToString(conf.nuevoEstado)) else h
+                        }
+                        val nuevoSeleccionado = nuevosHuecos.find { it.id == huecoId }
+                        state.copy(huecos = nuevosHuecos, selectedHueco = nuevoSeleccionado, mensaje = "Estado actualizado")
+                    }
+                }
+                is ApiResponse.HttpError -> _uiState.value = _uiState.value.copy(mensaje = "Error al actualizar estado")
+                is ApiResponse.NetworkError -> _uiState.value = _uiState.value.copy(mensaje = "Error de red")
+            }
             cerrarOverlay()
         }
     }
 
     fun reportarAbierto(huecoId: Int) {
         viewModelScope.launch {
-            huecoRepository.confirmarHueco(huecoId, confirmado = true)
+            when (val res = huecoRepository.confirmarHueco(huecoId, 6)) { // 6 = En Reparación (según mapping?)
+                is ApiResponse.Success -> {
+                    val conf = res.data
+                    _uiState.value = _uiState.value.let { state ->
+                        val nuevosHuecos = state.huecos.map { h ->
+                            if (h.id == huecoId) h.copy(estado = mapEstadoIntToString(conf.nuevoEstado)) else h
+                        }
+                        val nuevoSeleccionado = nuevosHuecos.find { it.id == huecoId }
+                        state.copy(huecos = nuevosHuecos, selectedHueco = nuevoSeleccionado, mensaje = "Estado actualizado")
+                    }
+                }
+                is ApiResponse.HttpError -> _uiState.value = _uiState.value.copy(mensaje = "Error al actualizar estado")
+                is ApiResponse.NetworkError -> _uiState.value = _uiState.value.copy(mensaje = "Error de red")
+            }
             cerrarOverlay()
         }
     }
 
     fun reportarCerrado(huecoId: Int) {
         viewModelScope.launch {
-            huecoRepository.confirmarHueco(huecoId, confirmado = false)
+            when (val res = huecoRepository.confirmarHueco(huecoId, 5)) { // 5 = Cerrado
+                is ApiResponse.Success -> {
+                    val conf = res.data
+                    _uiState.value = _uiState.value.let { state ->
+                        val nuevosHuecos = state.huecos.map { h ->
+                            if (h.id == huecoId) h.copy(estado = mapEstadoIntToString(conf.nuevoEstado)) else h
+                        }
+                        val nuevoSeleccionado = nuevosHuecos.find { it.id == huecoId }
+                        state.copy(huecos = nuevosHuecos, selectedHueco = nuevoSeleccionado, mensaje = "Estado actualizado")
+                    }
+                }
+                is ApiResponse.HttpError -> _uiState.value = _uiState.value.copy(mensaje = "Error al actualizar estado")
+                is ApiResponse.NetworkError -> _uiState.value = _uiState.value.copy(mensaje = "Error de red")
+            }
             cerrarOverlay()
+        }
+    }
+
+    private fun mapEstadoIntToString(estado: Int): String {
+        return when (estado) {
+            1 -> "pendiente_validacion"
+            2 -> "activo"
+            3 -> "rechazado"
+            4 -> "reabierto"
+            5 -> "cerrado"
+            6 -> "en_reparacion"
+            7 -> "reparado"
+            else -> ""
         }
     }
 

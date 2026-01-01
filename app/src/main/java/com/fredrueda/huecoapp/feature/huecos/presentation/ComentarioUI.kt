@@ -198,7 +198,7 @@ fun ComentarioResponse.toUI(): ComentarioUI {
     return ComentarioUI(
         id = this.id,
         autor = nombre,
-        fecha = this.fecha ?: "",
+        fecha = formatDateShort(this.fecha),
         contenido = this.texto ?: "",
         iniciales = iniciales.uppercase()
     )

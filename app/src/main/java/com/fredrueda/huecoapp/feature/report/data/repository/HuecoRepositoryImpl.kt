@@ -2,6 +2,7 @@ package com.fredrueda.huecoapp.feature.report.data.repository
 
 import com.fredrueda.huecoapp.core.data.network.ApiResponse
 import com.fredrueda.huecoapp.feature.report.data.remote.api.HuecoApi
+import com.fredrueda.huecoapp.feature.report.data.remote.dto.ConfirmacionResponse
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse
 import com.fredrueda.huecoapp.feature.report.domain.repository.HuecoRepository
@@ -100,17 +101,17 @@ class HuecoRepositoryImpl @Inject constructor(
 
     override suspend fun confirmarHueco(
         huecoId: Int,
-        confirmado: Boolean
-    ): ApiResponse<Unit> {
+        nuevoEstado: Int
+    ): ApiResponse<ConfirmacionResponse> {
         return try {
             val body = mapOf(
                 "hueco" to huecoId,
-                "confirmado" to confirmado
+                "nuevo_estado" to nuevoEstado
             )
             val resp = api.confirmarHueco(body)
 
             if (resp.isSuccessful) {
-                ApiResponse.Success(Unit)
+                resp.body()?.let { ApiResponse.Success(it) } ?: ApiResponse.HttpError(resp.code(), "Respuesta vacía")
             } else {
                 ApiResponse.HttpError(resp.code(), resp.errorBody()?.string())
             }

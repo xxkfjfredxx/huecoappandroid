@@ -1,5 +1,6 @@
 package com.fredrueda.huecoapp.feature.report.data.remote.api
 
+import com.fredrueda.huecoapp.feature.report.data.remote.dto.ConfirmacionResponse
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse
 import okhttp3.MultipartBody
@@ -39,7 +40,7 @@ interface HuecoApi {
     @POST("api/v1/confirmaciones/")
     suspend fun confirmarHueco(
         @Body body: Map<String, @JvmSuppressWildcards Any>
-    ): Response<Unit>
+    ): Response<ConfirmacionResponse>
 
     @POST("api/v1/huecos/{id}/follow/")
     suspend fun followHueco(@Path("id") huecoId: Int): Response<Unit>

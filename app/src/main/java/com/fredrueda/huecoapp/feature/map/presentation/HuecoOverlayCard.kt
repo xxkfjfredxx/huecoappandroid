@@ -42,6 +42,8 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.fredrueda.huecoapp.feature.huecos.presentation.mapEstadoValueToInternal
+import com.fredrueda.huecoapp.feature.huecos.presentation.mapEstadoValueToLabel
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
 
 // Clase para proveer datos de ejemplo al preview
@@ -154,7 +156,7 @@ fun HuecoOverlayCard(
                         color = Color.Black,
                         fontWeight = FontWeight.Bold
                     )
-                    StatusChip(estado = hueco.estado!!)
+                    StatusChip(estadoRaw = hueco.estado)
                 }
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -188,7 +190,9 @@ fun HuecoOverlayCard(
             }
 
             // --- SECCIÓN CONDICIONAL ---
-            when (hueco.estado) {
+            // --- SECCIÓN CONDICIONAL ---
+            val estadoInternal = mapEstadoValueToInternal(hueco.estado)
+            when (estadoInternal) {
                 "pendiente_validacion" -> {
                     ValidationSection(
                         hueco = hueco,
@@ -209,8 +213,9 @@ fun HuecoOverlayCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        SmallStateButton("Reparado", Color(0xFFFFC107), Modifier.weight(1f), onReparado)
-                        SmallStateButton("Cerrado", Color(0xFF4CAF50), Modifier.weight(1f), onCerrado)
+                        SmallStateButton("Reparado", Color(0xFF4CAF50), Modifier.weight(1f), onReparado)
+                        SmallStateButton("En Reparación", Color(0xFFFF9800), Modifier.weight(1f), onAbierto)
+                        SmallStateButton("Cerrado", Color(0xFF2196F3), Modifier.weight(1f), onCerrado)
                     }
                 }
             }
@@ -270,13 +275,18 @@ fun SmallStateButton(text: String, color: Color, modifier: Modifier, onClick: ()
 }
 
 @Composable
-fun StatusChip(estado: String) {
-    val (text, color) = when (estado) {
-        "pendiente_validacion" -> "Pendiente" to Color(0xFFFFC107)
-        "activo" -> "Activo" to Color(0xFFD32F2F)
-        "reabierto" -> "Reabierto" to Color(0xFFFFC107)
-        "cerrado" -> "Cerrado" to Color(0xFF4CAF50)
-        else -> estado to Color.Gray
+fun StatusChip(estadoRaw: Any?) {
+    val estadoInternal = mapEstadoValueToInternal(estadoRaw)
+    val text = mapEstadoValueToLabel(estadoRaw)
+    val color = when (estadoInternal) {
+        "pendiente_validacion" -> Color(0xFFFFC107) // amarillo
+        "activo" -> Color(0xFFD32F2F) // rojo (activo - visible como advertencia)
+        "reabierto" -> Color(0xFFFFA000) // naranja
+        "cerrado" -> Color(0xFF4CAF50) // verde
+        "en_reparacion" -> Color(0xFFFF9800) // naranja intenso
+        "reparado" -> Color(0xFF4CAF50) // verde
+        "rechazado" -> Color(0xFF9E9E9E) // gris
+        else -> Color.Gray
     }
 
     Surface(

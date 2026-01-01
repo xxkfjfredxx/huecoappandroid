@@ -1,6 +1,7 @@
 package com.fredrueda.huecoapp.feature.report.domain.repository
 
 import com.fredrueda.huecoapp.core.data.network.ApiResponse
+import com.fredrueda.huecoapp.feature.report.data.remote.dto.ConfirmacionResponse
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse
 import java.io.File
@@ -25,8 +26,8 @@ interface HuecoRepository {
 
     suspend fun confirmarHueco(
         huecoId: Int,
-        confirmado: Boolean
-    ): ApiResponse<Unit>
+        nuevoEstado: Int
+    ): ApiResponse<ConfirmacionResponse>
 
     suspend fun followHueco(huecoId: Int): ApiResponse<Unit>
     suspend fun unfollowHueco(huecoId: Int): ApiResponse<Unit>

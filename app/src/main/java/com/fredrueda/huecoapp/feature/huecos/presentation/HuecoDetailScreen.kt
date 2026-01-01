@@ -132,11 +132,43 @@ fun HuecoDetailScreen(
             HeaderImageSection(huecoDetail, viewModel)
 
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                // Info principal
                 HuecoInfoSection(huecoDetail)
                 Divider(color = HuecoBackgroundGray, thickness = 1.dp, modifier = Modifier.padding(vertical = 16.dp))
                 ReporterSection(huecoDetail)
                 Divider(color = HuecoBackgroundGray, thickness = 1.dp, modifier = Modifier.padding(vertical = 16.dp))
                 MiniMapSection(huecoDetail)
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Normalizar estado y decidir UI
+                val estadoInternal = mapEstadoValueToInternal(huecoDetail.estado)
+                val needsValidation = estadoInternal == "pendiente_validacion" && (huecoDetail.validadoUsuario != true && huecoDetail.miConfirmacion?.voto != true)
+                if (needsValidation) {
+                    Text("Ayuda a validar. Faltan ${huecoDetail.faltanValidaciones ?: 0} personas")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Button(
+                            onClick = { viewModel.validarHuecoExiste(huecoDetail.id) },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                        ) {
+                            Text("Sí existe", color = Color.Black)
+                        }
+                        Button(
+                            onClick = { viewModel.validarHuecoNoExiste(huecoDetail.id) },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                        ) {
+                            Text("No existe", color = Color.Black)
+                        }
+                    }
+                } else {
+                    // Si ya validó o no está pendiente, mostrar mensaje de agradecimiento cuando aplicable
+                    if (huecoDetail.estado == "pendiente_validacion" && (huecoDetail.validadoUsuario == true || huecoDetail.miConfirmacion?.voto == true)) {
+                        Text("Ya validaste este hueco. Gracias 🙌", color = Color(0xFF4CAF50))
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
                 val comentariosCount = viewModel.comentariosCount.collectAsState().value
                 // Priorizar el valor que trae el hueco (totalComentarios), si existe
@@ -145,8 +177,28 @@ fun HuecoDetailScreen(
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // Sección inferior (parece un bottom sheet persistente)
-            BottomStatusUpdateSection()
+            // Sección inferior: mostrar "¿Conoces el estado actual?" solo cuando el hueco esté ACTIVO
+            if (mapEstadoValueToInternal(huecoDetail.estado) == "activo") {
+                val isConfirming = viewModel.isConfirming.collectAsState().value
+                BottomStatusUpdateSection(
+                    onReparado = { viewModel.confirmarEstado(huecoDetail.id, 7) },
+                    onEnReparacion = { viewModel.confirmarEstado(huecoDetail.id, 6) },
+                    onCerrado = { viewModel.confirmarEstado(huecoDetail.id, 5) },
+                    isDisabled = isConfirming
+                )
+            }
+            // Si el hueco está cerrado, permitir reabrir
+            if (mapEstadoValueToInternal(huecoDetail.estado) == "cerrado") {
+                val isConfirming = viewModel.isConfirming.collectAsState().value
+                BottomStatusUpdateSection(
+                    onReparado = { /* no-op */ },
+                    onEnReparacion = { /* no-op */ },
+                    onCerrado = { /* no-op */ },
+                    onReabrir = { viewModel.confirmarEstado(huecoDetail.id, 4) },
+                    isDisabled = isConfirming,
+                    showReabrir = true
+                )
+            }
         }
     }
 }
@@ -187,11 +239,15 @@ fun HeaderImageSection(hueco: HuecoResponse, viewModel: HuecoDetailViewModel) {
             )
         }
 
-        // Chip de Estado
+        // Chip de Estado (normalizamos y mostramos etiqueta legible)
+        val estadoLabel = mapEstadoValueToLabel(hueco.estado)
+        val estadoInternal = mapEstadoValueToInternal(hueco.estado)
         Surface(
-            color = when (hueco.estado) {
+            color = when (estadoInternal) {
                 "activo" -> HuecoRed
                 "cerrado" -> HuecoGreen
+                "en_reparacion" -> HuecoOrangeScore
+                "reparado" -> HuecoGreen
                 else -> HuecoYellow
             },
             shape = RoundedCornerShape(50),
@@ -208,7 +264,7 @@ fun HeaderImageSection(hueco: HuecoResponse, viewModel: HuecoDetailViewModel) {
                     .background(Color.White, CircleShape))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Estado: ${hueco.estado?.replaceFirstChar { it.uppercase() } ?: "-"}",
+                    text = "Estado: $estadoLabel",
                     color = Color.White,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
@@ -312,8 +368,9 @@ fun ReporterSection(hueco: HuecoResponse) {
                 fontSize = 14.sp
             )
             Spacer(modifier = Modifier.height(2.dp))
+            val fechaReportShort = formatDateShort(hueco.fechaReporte)
             Text(
-                text = "${hueco.fechaReporte?.substring(0, 10) ?: "-"} • ${hueco.vistas ?: 0} visualizaciones",
+                text = "${if (fechaReportShort.isNotEmpty()) fechaReportShort else "-"} • ${hueco.vistas ?: 0} visualizaciones",
                 fontSize = 12.sp,
                 color = HuecoTextGray
             )
@@ -395,7 +452,7 @@ fun CommentsSection(comentarios: List<ComentarioResponse>, comentariosCount: Int
         toShow.forEach { c ->
             CommentItem(
                 authorName = c.usuarioNombre ?: "",
-                timeAgo = c.fecha ?: "",
+                timeAgo = formatDateShort(c.fecha),
                 content = c.texto ?: ""
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -441,7 +498,14 @@ fun CommentItem(authorName: String, timeAgo: String, content: String) {
 
 // 6. Sección Inferior de Actualización de Estado
 @Composable
-fun BottomStatusUpdateSection() {
+fun BottomStatusUpdateSection(
+    onReparado: () -> Unit = {},
+    onEnReparacion: () -> Unit = {},
+    onCerrado: () -> Unit = {},
+    onReabrir: () -> Unit = {},
+    isDisabled: Boolean = false,
+    showReabrir: Boolean = false
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -466,7 +530,7 @@ fun BottomStatusUpdateSection() {
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Fila de botones Reparado / Cerrado
+        // Fila de botones Reparado / En Reparación / Cerrado
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -475,15 +539,28 @@ fun BottomStatusUpdateSection() {
                 text = "Reparado",
                 icon = Icons.Default.Build,
                 backgroundColor = HuecoYellow,
-                modifier = Modifier.weight(1f)
-            ) { /* TODO: Acción Reparado */ }
+                modifier = Modifier.weight(1f),
+                onClick = onReparado,
+                enabled = !isDisabled
+            )
+
+            StatusActionButton(
+                text = "En Reparación",
+                icon = Icons.Default.Build,
+                backgroundColor = HuecoYellow,
+                modifier = Modifier.weight(1f),
+                onClick = onEnReparacion,
+                enabled = !isDisabled
+            )
 
             StatusActionButton(
                 text = "Cerrado",
                 icon = Icons.Default.Check,
                 backgroundColor = HuecoGreen,
-                modifier = Modifier.weight(1f)
-            ) { /* TODO: Acción Cerrado */ }
+                modifier = Modifier.weight(1f),
+                onClick = onCerrado,
+                enabled = !isDisabled
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -504,6 +581,13 @@ fun BottomStatusUpdateSection() {
                 fontSize = 16.sp
             )
         }
+
+        if (showReabrir) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(onClick = onReabrir, enabled = !isDisabled) {
+                Text("Reabrir")
+            }
+        }
     }
 }
 
@@ -513,13 +597,15 @@ fun StatusActionButton(
     icon: ImageVector,
     backgroundColor: Color,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enabled: Boolean = true
 ) {
     Button(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(containerColor = backgroundColor),
         shape = RoundedCornerShape(16.dp),
-        modifier = modifier.height(56.dp)
+        modifier = modifier.height(56.dp),
+        enabled = enabled
     ) {
         Icon(icon, contentDescription = null, tint = Color.Black)
         Spacer(modifier = Modifier.width(8.dp))

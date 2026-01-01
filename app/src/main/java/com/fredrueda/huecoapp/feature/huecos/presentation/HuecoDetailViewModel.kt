@@ -6,6 +6,7 @@ import com.fredrueda.huecoapp.feature.huecos.data.repository.HuecoDetailReposito
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.ComentarioResponse
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.CreateComentarioRequest
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
+import com.fredrueda.huecoapp.feature.report.domain.repository.HuecoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +15,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HuecoDetailViewModel @Inject constructor(
-    private val repository: HuecoDetailRepository
+    private val repository: HuecoDetailRepository,
+    private val huecoRepository: HuecoRepository
 ) : ViewModel() {
     private val _huecoDetail = MutableStateFlow<HuecoResponse?>(null)
     val huecoDetail: StateFlow<HuecoResponse?> = _huecoDetail
@@ -30,6 +32,8 @@ class HuecoDetailViewModel @Inject constructor(
     private var isLastPage = false
     private var isLoading = false
     private var isPostingComentario = false
+    private val _isConfirming = MutableStateFlow(false)
+    val isConfirming: StateFlow<Boolean> = _isConfirming
 
     fun initializeWith(hueco: HuecoResponse) {
         // Solo inicializar si aún no tenemos detalle cargado
@@ -127,6 +131,84 @@ class HuecoDetailViewModel @Inject constructor(
             } finally {
                 isPostingComentario = false
             }
+        }
+    }
+
+    fun validarHuecoExiste(huecoId: Int) {
+        viewModelScope.launch {
+            when (val result = huecoRepository.validarHueco(huecoId, true)) {
+                is com.fredrueda.huecoapp.core.data.network.ApiResponse.Success -> {
+                    val resp = result.data
+                    // actualizar huecoDetail
+                    _huecoDetail.value = _huecoDetail.value?.copy(
+                        validadoUsuario = true,
+                        miConfirmacion = resp,
+                        validacionesPositivas = (_huecoDetail.value?.validacionesPositivas ?: 0) + 1,
+                        faltanValidaciones = maxOf(0, 5 - ((_huecoDetail.value?.validacionesPositivas ?: 0) + 1))
+                    )
+                }
+                is com.fredrueda.huecoapp.core.data.network.ApiResponse.HttpError -> {
+                    // manejar errores según mensaje
+                }
+                is com.fredrueda.huecoapp.core.data.network.ApiResponse.NetworkError -> {
+                    // manejar error de red
+                }
+            }
+        }
+    }
+
+    fun validarHuecoNoExiste(huecoId: Int) {
+        viewModelScope.launch {
+            when (val result = huecoRepository.validarHueco(huecoId, false)) {
+                is com.fredrueda.huecoapp.core.data.network.ApiResponse.Success -> {
+                    val resp = result.data
+                    _huecoDetail.value = _huecoDetail.value?.copy(
+                        validadoUsuario = true,
+                        miConfirmacion = resp,
+                        validacionesNegativas = (_huecoDetail.value?.validacionesNegativas ?: 0) + 1
+                    )
+                }
+                is com.fredrueda.huecoapp.core.data.network.ApiResponse.HttpError -> {
+                }
+                is com.fredrueda.huecoapp.core.data.network.ApiResponse.NetworkError -> {
+                }
+            }
+        }
+    }
+
+    fun confirmarEstado(huecoId: Int, nuevoEstado: Int) {
+        if (_isConfirming.value) return
+        _isConfirming.value = true
+        viewModelScope.launch {
+            when (val res = huecoRepository.confirmarHueco(huecoId, nuevoEstado)) {
+                is com.fredrueda.huecoapp.core.data.network.ApiResponse.Success -> {
+                    val conf = res.data
+                    // actualizar huecoDetail
+                    _huecoDetail.value = _huecoDetail.value?.copy(
+                        estado = mapEstadoIntToString(conf.nuevoEstado)
+                    )
+                }
+                is com.fredrueda.huecoapp.core.data.network.ApiResponse.HttpError -> {
+                    // manejar error
+                }
+                is com.fredrueda.huecoapp.core.data.network.ApiResponse.NetworkError -> {
+                    // manejar error de red
+                }
+            }
+            _isConfirming.value = false
+        }
+    }
+
+    private fun mapEstadoIntToString(estado: Int): String {
+        return when (estado) {
+            1 -> "pendiente_validacion"
+            2 -> "activo"
+            3 -> "rechazado"
+            4 -> "reabierto"
+            5 -> "cerrado"
+            6 -> "en_reparacion"
+            7 -> "reparado"
+            else -> ""
         }
     }
 }

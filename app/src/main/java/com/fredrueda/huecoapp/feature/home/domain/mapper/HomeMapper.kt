@@ -15,13 +15,7 @@ fun HuecoHomeDto.toHomeItem(tipo: String): HomeItem {
         id = id,
         titulo = descripcion ?: "Hueco $id",
         descripcion = descripcion ?: "",
-        estado = when (estado) {
-            "pendiente_validacion" -> "Pendiente"
-            "activo" -> "Activo"
-            "reabierto" -> "Reincidente"
-            "cerrado" -> "Arreglado"
-            else -> "Pendiente"
-        },
+        estado = mapEstadoValueToLabel(estado),
         fecha = fechaReporte ?: "",
         tipo = tipo,
         imagen = fullImageUrl   // <-- LA URL COMPLETA
@@ -32,8 +26,46 @@ fun HuecoHomeDto.toHomeItem(): HomeItem = HomeItem(
     id = id,
     titulo = descripcion ?: "",
     descripcion = descripcion ?: "",
-    estado = estado ?: "",
+    estado = mapEstadoValueToLabel(estado),
     fecha = fechaReporte ?: "",
     tipo = "", // Puedes ajustar si tienes un campo tipo
     imagen = imagen
 )
+
+// Mapea valores de estado que pueden venir como cadena descriptiva o como entero (o cadena numérica)
+private fun mapEstadoValueToLabel(estadoRaw: Any?): String {
+    if (estadoRaw == null) return "Pendiente"
+    // Si es número
+    when (estadoRaw) {
+        is Number -> return mapEstadoIntToLabel(estadoRaw.toInt())
+        is String -> {
+            val num = estadoRaw.toIntOrNull()
+            if (num != null) return mapEstadoIntToLabel(num)
+            // comparar con strings conocidos
+            return when (estadoRaw) {
+                "pendiente_validacion" -> "Pendiente"
+                "activo" -> "Activo"
+                "reabierto" -> "Reincidente"
+                "cerrado" -> "Arreglado"
+                "en_reparacion" -> "En reparación"
+                "reparado" -> "Reparado"
+                "rechazado" -> "Rechazado"
+                else -> estadoRaw.replaceFirstChar { it.uppercase() }
+            }
+        }
+        else -> return estadoRaw.toString()
+    }
+}
+
+private fun mapEstadoIntToLabel(estado: Int): String {
+    return when (estado) {
+        1 -> "Pendiente"
+        2 -> "Activo"
+        3 -> "Rechazado"
+        4 -> "Reincidente"
+        5 -> "Arreglado"
+        6 -> "En reparación"
+        7 -> "Reparado"
+        else -> "Pendiente"
+    }
+}

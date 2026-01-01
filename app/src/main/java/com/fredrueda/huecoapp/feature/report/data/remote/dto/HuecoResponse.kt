@@ -60,6 +60,16 @@ data class MiConfirmacionResponse(
     @SerializedName("voto") val voto: Boolean? // <-- AGREGADO
 ) : Parcelable
 
+// DTO para la respuesta de confirmar/crear una confirmación (nuevo_estado)
+data class ConfirmacionResponse(
+    val id: Int,
+    val hueco: Int,
+    val usuario: Int,
+    @SerializedName("usuario_nombre") val usuarioNombre: String?,
+    @SerializedName("nuevo_estado") val nuevoEstado: Int,
+    val fecha: String?
+)
+
 // DTO para crear comentario (request body)
 data class CreateComentarioRequest(
     val hueco: Int,
