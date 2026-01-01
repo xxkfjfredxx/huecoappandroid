@@ -9,6 +9,7 @@ data class HuecoHomeDto(
     @SerializedName("usuario_nombre")
     val usuarioNombre: String?,
     val descripcion: String?,
+    val ciudad: String?,
     val latitud: Double?,
     val longitud: Double?,
     val estado: String?,
@@ -23,6 +24,8 @@ data class HuecoHomeDto(
     @SerializedName("validaciones_negativas")
     val validacionesNeg: Int?,
     val imagen: String?,
+    val gravedad: String?,
+    val vistas: Int?,
     val comentarios: List<CommentHomeDto>?,
     @SerializedName("confirmaciones_count")
     val confirmacionesCount: Int?,
@@ -30,6 +33,8 @@ data class HuecoHomeDto(
     val faltanValidaciones: Int?,
     @SerializedName("validado_usuario")
     val validadoUsuario: Boolean?,
+    @SerializedName("is_followed")
+    val isFollowed: Boolean?,
     @SerializedName("total_comentarios")
     val totalComentarios: Int?,
     @SerializedName("mi_confirmacion")

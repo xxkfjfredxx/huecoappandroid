@@ -151,13 +151,14 @@ class HuecoDetailViewModel @Inject constructor(
 
     fun validarHuecoExiste(huecoId: Int) {
         viewModelScope.launch {
+            // Optimistic: ocultar botones de validación inmediatamente
+            _selectedValidation.value = null
+            _huecoDetail.value = _huecoDetail.value?.copy(validadoUsuario = true)
+
             when (val result = huecoRepository.validarHueco(huecoId, true)) {
                 is com.fredrueda.huecoapp.core.data.network.ApiResponse.Success -> {
                     val resp = result.data
-                    // No marcar validadoUsuario aquí para que los botones no desaparezcan.
-                    // Solo guardamos la selección local para mostrar feedback inmediato.
-                    _selectedValidation.value = 1
-                    // Actualizar miConfirmacion localmente para indicar que el usuario votó (positivo)
+                    // Guardar la confirmación recibida; validadoUsuario ya fue marcado optimistamente
                     _huecoDetail.value = _huecoDetail.value?.copy(
                         miConfirmacion = com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse(
                             id = resp.id,
@@ -167,14 +168,21 @@ class HuecoDetailViewModel @Inject constructor(
                             confirmado = null,
                             fecha = resp.fecha,
                             nuevoEstado = null
-                        )
+                        ),
+                        validadoUsuario = true
                     )
                 }
                 is com.fredrueda.huecoapp.core.data.network.ApiResponse.HttpError -> {
-                    // manejar errores según mensaje
+                    // Revertir optimistic update si la validación falló
+                    _huecoDetail.value = _huecoDetail.value?.copy(validadoUsuario = false)
+                    // Si el servidor dice que ya validó, mantener validadoUsuario=true
+                    if (result.message?.contains("Ya has validado este hueco") == true) {
+                        _huecoDetail.value = _huecoDetail.value?.copy(validadoUsuario = true)
+                    }
                 }
                 is com.fredrueda.huecoapp.core.data.network.ApiResponse.NetworkError -> {
-                    // manejar error de red
+                    // Revertir optimistic update en caso de error de red
+                    _huecoDetail.value = _huecoDetail.value?.copy(validadoUsuario = false)
                 }
             }
         }
@@ -182,12 +190,14 @@ class HuecoDetailViewModel @Inject constructor(
 
     fun validarHuecoNoExiste(huecoId: Int) {
         viewModelScope.launch {
+            // Optimistic: ocultar botones de validación inmediatamente
+            _selectedValidation.value = null
+            _huecoDetail.value = _huecoDetail.value?.copy(validadoUsuario = true)
+
             when (val result = huecoRepository.validarHueco(huecoId, false)) {
                 is com.fredrueda.huecoapp.core.data.network.ApiResponse.Success -> {
                     val resp = result.data
-                    // No marcar validadoUsuario aquí; solo selección local
-                    _selectedValidation.value = 0
-                    // Actualizar miConfirmacion localmente para indicar que el usuario votó (negativo)
+                    // Guardar la confirmación recibida; validadoUsuario ya fue marcado optimistamente
                     _huecoDetail.value = _huecoDetail.value?.copy(
                         miConfirmacion = com.fredrueda.huecoapp.feature.report.data.remote.dto.MiConfirmacionResponse(
                             id = resp.id,
@@ -197,12 +207,20 @@ class HuecoDetailViewModel @Inject constructor(
                             confirmado = null,
                             fecha = resp.fecha,
                             nuevoEstado = null
-                        )
+                        ),
+                        validadoUsuario = true
                     )
                 }
                 is com.fredrueda.huecoapp.core.data.network.ApiResponse.HttpError -> {
+                    // Revertir optimistic update si la validación falló
+                    _huecoDetail.value = _huecoDetail.value?.copy(validadoUsuario = false)
+                    if (result.message?.contains("Ya has validado este hueco") == true) {
+                        _huecoDetail.value = _huecoDetail.value?.copy(validadoUsuario = true)
+                    }
                 }
                 is com.fredrueda.huecoapp.core.data.network.ApiResponse.NetworkError -> {
+                    // Revertir optimistic update en caso de error de red
+                    _huecoDetail.value = _huecoDetail.value?.copy(validadoUsuario = false)
                 }
             }
         }

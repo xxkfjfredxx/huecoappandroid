@@ -8,7 +8,7 @@ fun HuecoHomeDto.toHuecoResponse(): HuecoResponse = HuecoResponse(
     id = id,
     usuario = usuario,
     usuarioNombre = usuarioNombre,
-    ciudad = null,
+    ciudad = ciudad,
     descripcion = descripcion,
     latitud = latitud,
     longitud = longitud,
@@ -18,8 +18,8 @@ fun HuecoHomeDto.toHuecoResponse(): HuecoResponse = HuecoResponse(
     numeroCiclos = numeroCiclos,
     validacionesPositivas = validacionesPos,
     validacionesNegativas = validacionesNeg,
-    gravedad = null,
-    vistas = null,
+    gravedad = gravedad,
+    vistas = vistas,
     imagen = imagen,
     comentarios = comentarios?.map { c ->
         ComentarioResponse(
@@ -35,8 +35,8 @@ fun HuecoHomeDto.toHuecoResponse(): HuecoResponse = HuecoResponse(
     totalComentarios = totalComentarios ?: comentarios?.size ?: 0,
     confirmacionesCount = confirmacionesCount,
     validadoUsuario = validadoUsuario,
+    isFollowed = isFollowed,
     miConfirmacion = miConfirmacion,
     // mapear faltanValidaciones si vino del DTO; si no viene, calcularlo a partir de validaciones positivas
-    faltanValidaciones = faltanValidaciones ?: max(0, 5 - (validacionesPos ?: 0)),
-    isFollowed = null
+    faltanValidaciones = faltanValidaciones ?: max(0, 5 - (validacionesPos ?: 0))
 )
