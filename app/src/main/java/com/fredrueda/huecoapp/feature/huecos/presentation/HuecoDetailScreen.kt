@@ -82,9 +82,11 @@ fun HuecoDetailScreen(
     // Inicializar ViewModel con el hueco pasado para mantener los comentarios iniciales
     LaunchedEffect(hueco.id) {
         viewModel.initializeWith(hueco)
-        // Si no tenemos comentarios (nulos o vacíos) y no conocemos el total, solicitar detalle
-        // Esto cubre el caso en el que Home puede devolver lista vacía y queremos cargar desde API
-        if (hueco.comentarios.isNullOrEmpty() && hueco.totalComentarios == null) {
+        // Si no tenemos total de comentarios y además no tenemos suficientes comentarios pasados desde
+        // la pantalla anterior (menos de 3), solicitar detalle desde el servidor.
+        val passedCount = hueco.comentarios?.size ?: 0
+        val needsFetch = (hueco.totalComentarios == null) && (passedCount < 3)
+        if (needsFetch) {
             viewModel.loadHuecoDetail(hueco.id)
         }
     }

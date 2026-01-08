@@ -95,6 +95,16 @@ fun LoginScreen(
         }
     }
 
+    // Integración de Facebook Login: obtiene accessToken y lo envía al ViewModel
+    val facebookSignIn = rememberFacebookSignIn(activity) { success, token, message ->
+        if (success && token != null) {
+            viewModel.loginWithFacebook(token)
+        } else {
+            Log.e("LoginScreen", "Facebook login falló: ${message ?: "Sin mensaje"}")
+            Toast.makeText(context, message ?: "Error en Facebook Login", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     val items = listOf(
         Triple(R.drawable.login_foto, "Reporta huecos fácilmente", "Toma una foto y ayuda a mejorar tu ciudad."),
         Triple(R.drawable.login_busqueda, "Mira el mapa en tiempo real", "Encuentra zonas críticas en tu comunidad."),
@@ -220,7 +230,7 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             SocialButton(icon = R.drawable.google, text = "Google", onClick = googleSignIn)
-            SocialButton(icon = R.drawable.facebook, text = "Facebook", onClick = googleSignIn)
+            SocialButton(icon = R.drawable.facebook, text = "Facebook", onClick = facebookSignIn)
         }
 
         Spacer(modifier = Modifier.height(22.dp))

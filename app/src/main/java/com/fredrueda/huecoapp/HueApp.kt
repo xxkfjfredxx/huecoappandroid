@@ -20,8 +20,20 @@ class HueApp : Application() {
      */
     override fun onCreate() {
         super.onCreate()
-        // Inicialización del SDK de Facebook (descomentado cuando se configure)
-        //com.facebook.FacebookSdk.sdkInitialize(this)
-        //com.facebook.appevents.AppEventsLogger.activateApp(this)
+        // Inicialización controlada del SDK de Facebook para evitar crash cuando no hay tokens reales.
+        try {
+            val appId = getString(R.string.facebook_app_id)
+            val clientToken = getString(R.string.facebook_client_token)
+            val placeholders = setOf(getString(R.string.facebook_app_id), getString(R.string.facebook_client_token))
+            val hasValidConfig = appId.isNotBlank() && clientToken.isNotBlank() && !placeholders.contains(appId) && !placeholders.contains(clientToken)
+            if (hasValidConfig) {
+                com.facebook.FacebookSdk.setClientToken(clientToken)
+                com.facebook.FacebookSdk.sdkInitialize(this)
+                // Opcional: eventos
+                // com.facebook.appevents.AppEventsLogger.activateApp(this)
+            }
+        } catch (_: Exception) {
+            // Silencia errores de inicialización si recursos no existen aún
+        }
     }
 }

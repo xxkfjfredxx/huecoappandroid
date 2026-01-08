@@ -1,7 +1,9 @@
 <resources>
     <string name="app_name">HuecoApp</string>
     <string name="default_web_client_id">795059173963-b952gr3hp9chqkn3p9cmg1dv2e06g1h6.apps.googleusercontent.com</string>
-    <string name="facebook_app_id">TU_FACEBOOK_APP_ID</string>
-    <string name="fb_login_protocol_scheme">fbTU_FACEBOOK_APP_ID</string>
+    <string name="facebook_app_id">1165281015755817</string>
+    <string name="fb_login_protocol_scheme">fb1165281015755817</string>
+    <!-- Client Token de Facebook: reemplazar por el valor real desde el dashboard de Facebook -->
+    <string name="facebook_client_token">c3d0f9af852ecb94077379d3ff69445e</string>
 
 </resources>

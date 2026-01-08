@@ -2,6 +2,6 @@
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
         <!-- ✅ Aquí pones tu IP local del backend -->
-        <domain includeSubdomains="true">192.168.1.11</domain>
+        <domain includeSubdomains="true">192.168.1.2</domain>
     </domain-config>
 </network-security-config>

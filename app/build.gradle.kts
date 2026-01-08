@@ -25,8 +25,30 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Quitar applicationIdSuffix para que coincida con google-services.json
+            isDebuggable = true
+            // Opcional: distinguir por versión
+            versionNameSuffix = "-debug"
+            // BuildConfig disponible
+            buildConfigField("String", "BUILD_TYPE", "\"debug\"")
+        }
+        create("qa") {
+            initWith(getByName("debug"))
+            isDebuggable = true
+            versionNameSuffix = "-qa"
+            buildConfigField("String", "BUILD_TYPE", "\"qa\"")
+        }
         release {
-            isMinifyEnabled = false
+            // OPTIMIZACIÓN CLAVE: Activa la reducción de código y ofuscación
+            isMinifyEnabled = true
+
+            // Elimina recursos que no usas para que la app pese menos
+            isShrinkResources = true
+
+            // IMPORTANTE: Usa la firma de debug para poder instalarla desde el botón Play
+            signingConfig = signingConfigs.getByName("debug")
+
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -42,6 +64,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

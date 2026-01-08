@@ -49,22 +49,30 @@ class HuecoDetailViewModel @Inject constructor(
         _selectedConfirmation.value = hueco.miConfirmacion?.nuevoEstado
         Log.d("HuecoDetailVM", "initializeWith: miConfirmacion=${hueco.miConfirmacion}")
 
-        // Solo setear el detalle completo si aún no lo tenemos; evitar sobreescribir
-        // un detalle ya cargado desde servidor.
+        // Setear el detalle completo si aún no lo tenemos; evitar sobreescribir un detalle
+        // ya cargado desde servidor. Sin embargo, siempre actualizamos campos útiles como
+        // miConfirmacion y validadoUsuario.
         if (_huecoDetail.value == null) {
             _huecoDetail.value = hueco
+
             // Si el hueco trae comentarios, inicializamos la lista local (tomamos hasta 3)
             val initial = hueco.comentarios ?: emptyList()
             if (initial.isNotEmpty() && _comentarios.value.isEmpty()) {
-                // ordenar por fecha descendente (más recientes primero) y tomar hasta 3
-                _comentarios.value = initial.sortedByDescending { it.fecha ?: "" }.take(3)
+                // ordenar por fecha ASC (más viejo arriba, más nuevo abajo), y tomar los últimos 3 (más recientes)
+                val sortedAsc = initial.sortedBy { it.fecha ?: "" }
+                _comentarios.value = if (sortedAsc.size > 3) sortedAsc.takeLast(3) else sortedAsc
             }
+
             // Si el hueco trae un listado, usaremos su tamaño como conteo conocido
             if (hueco.totalComentarios != null) {
                 _comentariosCount.value = hueco.totalComentarios
             } else if (!hueco.comentarios.isNullOrEmpty()) {
                 _comentariosCount.value = hueco.comentarios.size
             }
+        } else {
+            // Si ya existe detalle cargado, al menos actualizar selección de confirmación y conteo
+            _selectedConfirmation.value = hueco.miConfirmacion?.nuevoEstado
+            if (hueco.totalComentarios != null) _comentariosCount.value = hueco.totalComentarios
         }
     }
 
@@ -76,7 +84,8 @@ class HuecoDetailViewModel @Inject constructor(
             _selectedConfirmation.value = detail.miConfirmacion?.nuevoEstado
             // Si aún no tenemos comentarios locales y el detalle trae comentarios, inicializamos los primeros 3
             if (_comentarios.value.isEmpty() && !detail.comentarios.isNullOrEmpty()) {
-                _comentarios.value = detail.comentarios.sortedByDescending { it.fecha ?: "" }.take(3)
+                val sortedAsc = detail.comentarios.sortedBy { it.fecha ?: "" }
+                _comentarios.value = if (sortedAsc.size > 3) sortedAsc.takeLast(3) else sortedAsc
                 // actualizar conteo si el detalle trae total
                 if (detail.totalComentarios != null) _comentariosCount.value = detail.totalComentarios
             }
@@ -89,12 +98,13 @@ class HuecoDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val response = repository.getComentarios(huecoId, page, pageSize)
             if (page == 1) {
-                // ordenar por fecha descendente para tener los más recientes primero
-                _comentarios.value = response.results.sortedByDescending { it.fecha ?: "" }
+                // ordenar por fecha ASC para que el más viejo quede arriba
+                _comentarios.value = response.results.sortedBy { it.fecha ?: "" }
                 // actualizar el conteo total cuando se obtiene la página
                 _comentariosCount.value = response.count
             } else {
-                _comentarios.value = (_comentarios.value + response.results).sortedByDescending { it.fecha ?: "" }
+                // concatenar al final (paginación) y mantener orden ascendente
+                _comentarios.value = (_comentarios.value + response.results).sortedBy { it.fecha ?: "" }
             }
             currentPage = page
             isLastPage = response.next == null
@@ -131,15 +141,14 @@ class HuecoDetailViewModel @Inject constructor(
             try {
                 val request = CreateComentarioRequest(hueco = huecoId, texto = texto, imagen = imagen)
                 val created = repository.createComentario(request)
-                // Añadir al final de la lista actual sin refrescar
-                // Insertar y reordenar por fecha (por si el server devuelve fecha distinta)
-                _comentarios.value = (listOf(created) + _comentarios.value).sortedByDescending { it.fecha ?: "" }
+                // Añadir al final de la lista actual sin refrescar (nuevo comentario debe quedar al final)
+                _comentarios.value = (_comentarios.value + listOf(created)).sortedBy { it.fecha ?: "" }
                 // Actualizar conteo si ya lo conocíamos
                 _comentariosCount.value = (_comentariosCount.value ?: 0) + 1
                 // Actualizar huecoDetail si existe para reflejar nuevo comentario en el detalle
                 _huecoDetail.value = _huecoDetail.value?.let { current ->
                     val existing = current.comentarios ?: emptyList()
-                    current.copy(comentarios = existing + created) // keep backend order if used elsewhere
+                    current.copy(comentarios = existing + listOf(created)) // anexar al final
                 }
             } catch (e: Exception) {
                 // manejar error (log/mostrar mensaje) - por ahora no hacemos nada
