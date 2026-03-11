@@ -27,6 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -109,7 +110,7 @@ fun HuecoOverlayCard(
 ) {
     ElevatedCard(
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = Color.White),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp),
         modifier = Modifier
             .width(320.dp)
@@ -139,7 +140,8 @@ fun HuecoOverlayCard(
                         fontWeight = FontWeight.Black,
                         fontSize = 16.sp,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     // Ajuste de nombres según tu archivo HuecoOverlayCard.kt
@@ -147,13 +149,13 @@ fun HuecoOverlayCard(
                     Text(
                         text = "${total} comentarios",
                         fontSize = 13.sp,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = "Estado :",
                         fontSize = 13.sp,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
                     StatusChip(estadoRaw = hueco.estado)
@@ -161,7 +163,7 @@ fun HuecoOverlayCard(
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     IconButton(onClick = onClose, modifier = Modifier.size(24.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.Black)
+                        Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = MaterialTheme.colorScheme.onSurface)
                     }
 
                     Spacer(Modifier.height(8.dp))
@@ -171,7 +173,7 @@ fun HuecoOverlayCard(
                         Icon(
                             imageVector = if (hueco.isFollowed == true) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                             contentDescription = "Seguir",
-                            tint = if (hueco.isFollowed == true) Color(0xFFFFC107) else Color.Gray
+                            tint = if (hueco.isFollowed == true) MaterialTheme.colorScheme.primary else Color.Gray
                         )
                     }
                 }
@@ -183,10 +185,10 @@ fun HuecoOverlayCard(
             Button(
                 onClick = onVerDetalle,
                 modifier = Modifier.fillMaxWidth().height(40.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE6E971)),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("Ir al detalle Hueco", color = Color.Black, fontWeight = FontWeight.Black)
+                Text("Ir al detalle Hueco", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Black)
             }
 
             // --- SECCIÓN CONDICIONAL ---
@@ -207,6 +209,7 @@ fun HuecoOverlayCard(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Black,
                         textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                     )
                     Row(
@@ -319,7 +322,7 @@ fun StatusChip(estadoRaw: Any?) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 2.dp),
-            color = Color.White,
+            color = if (estadoInternal == "pendiente_validacion" || estadoInternal == "reabierto" || estadoInternal == "en_reparacion") Color.Black else Color.White,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold
         )

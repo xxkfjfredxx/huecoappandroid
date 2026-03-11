@@ -32,12 +32,14 @@ android {
             versionNameSuffix = "-debug"
             // BuildConfig disponible
             buildConfigField("String", "BUILD_TYPE", "\"debug\"")
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8000/\"")
         }
         create("qa") {
             initWith(getByName("debug"))
             isDebuggable = true
             versionNameSuffix = "-qa"
             buildConfigField("String", "BUILD_TYPE", "\"qa\"")
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8000/\"")
         }
         release {
             // OPTIMIZACIÓN CLAVE: Activa la reducción de código y ofuscación
@@ -48,6 +50,7 @@ android {
 
             // IMPORTANTE: Usa la firma de debug para poder instalarla desde el botón Play
             signingConfig = signingConfigs.getByName("debug")
+            buildConfigField("String", "BASE_URL", "\"https://api.tu-dominio.com/\"")
 
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -123,6 +126,8 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.coil.svg)
     implementation(libs.osmdroid.android)
+    // --- OSMBonusPack (Para el Clustering de Pines) ---
+    implementation("com.github.MKergall:osmbonuspack:6.9.0")
 
     // --- Facebook Sign-in --
     implementation("com.facebook.android:facebook-login:16.3.0")

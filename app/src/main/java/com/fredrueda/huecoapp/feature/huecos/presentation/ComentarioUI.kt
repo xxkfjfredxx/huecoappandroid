@@ -34,6 +34,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -114,17 +115,18 @@ fun ComentariosScreen(
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Atrás",
-                            tint = Color.Black
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
                 modifier = Modifier
             )
         },
-        containerColor = Color(0xFFF8F8F8)
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             if (comentarios.isEmpty()) {
@@ -133,7 +135,7 @@ fun ComentariosScreen(
                     modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("No hay comentarios aún.", color = Color.Gray)
+                    Text("No hay comentarios aún.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
                 LazyColumn(
@@ -150,12 +152,12 @@ fun ComentariosScreen(
                 }
             }
 
-            // Barra inferior para escribir y enviar comentario (fondo blanco)
+            // Barra inferior para escribir y enviar comentario (fondo adaptable)
             Surface(
                 tonalElevation = 2.dp,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
-                color = Color.White
+                color = MaterialTheme.colorScheme.surface
             ) {
                 Row(
                     modifier = Modifier
@@ -167,8 +169,8 @@ fun ComentariosScreen(
                         value = newText,
                         onValueChange = { newText = it },
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("Escribe un comentario...", color = Color.Gray) },
-                        textStyle = TextStyle(color = Color.Black)
+                        placeholder = { Text("Escribe un comentario...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
@@ -181,7 +183,10 @@ fun ComentariosScreen(
                              focusManager.clearFocus()
                          }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = HuecoYellow)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     ) {
                         Icon(imageVector = Icons.Default.Send, contentDescription = "Enviar")
                     }
@@ -209,7 +214,7 @@ fun CommentCardItem(comentario: ComentarioUI) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = Color.White),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -245,12 +250,12 @@ fun CommentCardItem(comentario: ComentarioUI) {
                         text = comentario.autor,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 15.sp,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = comentario.fecha,
                         fontSize = 12.sp,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -260,7 +265,7 @@ fun CommentCardItem(comentario: ComentarioUI) {
                     text = comentario.contenido,
                     fontSize = 14.sp,
                     lineHeight = 20.sp,
-                    color = Color(0xFF444444)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

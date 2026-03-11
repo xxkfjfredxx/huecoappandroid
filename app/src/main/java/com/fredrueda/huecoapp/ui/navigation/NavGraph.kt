@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -25,6 +26,7 @@ import com.fredrueda.huecoapp.feature.auth.presentation.VerifyRegisterScreen
 import com.fredrueda.huecoapp.feature.home.presentation.MainHomeScreen
 import com.fredrueda.huecoapp.feature.huecos.presentation.ComentariosScreen
 import com.fredrueda.huecoapp.feature.huecos.presentation.HuecoDetailScreen
+import com.fredrueda.huecoapp.feature.huecos.presentation.HuecoDetailViewModel
 import com.fredrueda.huecoapp.feature.profile.presentation.ProfileScreen
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
 import com.fredrueda.huecoapp.feature.report.presentation.ReportScreen
@@ -185,16 +187,21 @@ fun AppNavGraph(
         }
 
         // Pantalla de Detalle
-        composable(Destinations.DetalleHueco.route) {
-            // Intentar obtener el hueco desde el savedStateHandle del entry anterior o del entry actual
+        composable(Destinations.DetalleHueco.route) { backStackEntry ->
+            // Intentar obtener el hueco desde el savedStateHandle
             val prev = navController.previousBackStackEntry?.savedStateHandle?.get<HuecoResponse>("hueco")
-            val curr = navController.currentBackStackEntry?.savedStateHandle?.get<HuecoResponse>("hueco")
+            val curr = backStackEntry.savedStateHandle.get<HuecoResponse>("hueco")
             val hueco = prev ?: curr
+            
             if (hueco != null) {
+                // El ViewModel se asocia a este backStackEntry (el de detalle)
+                val viewModel = hiltViewModel<HuecoDetailViewModel>(backStackEntry)
+                
                 HuecoDetailScreen(
                     hueco = hueco,
                     onBackClick = { navController.popBackStack() },
-                    onSeeComments = { navController.navigate(Destinations.Comentarios.createRoute(hueco.id)) }
+                    onSeeComments = { navController.navigate(Destinations.Comentarios.createRoute(hueco.id)) },
+                    viewModel = viewModel
                 )
             }
         }
@@ -204,11 +211,18 @@ fun AppNavGraph(
             route = Destinations.Comentarios.route,
             arguments = listOf(navArgument("huecoId") { type = NavType.IntType })
         ) { backStackEntry ->
-            // Obtener huecoId del argumento y mostrar ComentariosScreen
             val huecoId = backStackEntry.arguments?.getInt("huecoId") ?: 0
+            
+            // BUSCAR el BackStackEntry de la pantalla de detalle para REUTILIZAR su ViewModel
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(Destinations.DetalleHueco.route)
+            }
+            val viewModel = hiltViewModel<HuecoDetailViewModel>(parentEntry)
+
             ComentariosScreen(
                 huecoId = huecoId,
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                viewModel = viewModel
             )
         }
 

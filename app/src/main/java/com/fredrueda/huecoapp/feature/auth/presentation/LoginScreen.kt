@@ -34,6 +34,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -148,7 +149,7 @@ fun LoginScreen(
             .fillMaxSize()
             .padding(WindowInsets.safeDrawing.asPaddingValues())
             .verticalScroll(rememberScrollState())
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -168,7 +169,7 @@ fun LoginScreen(
         Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
             repeat(items.size) { index ->
                 val realIndex = pagerState.currentPage % items.size
-                val color = if (realIndex == index) Color(0xFFFFD600) else Color.Gray
+                val color = if (realIndex == index) MaterialTheme.colorScheme.primary else Color.Gray
                 Box(
                     modifier = Modifier
                         .padding(4.dp)
@@ -200,7 +201,7 @@ fun LoginScreen(
             onClick = { onForgotPasswordClick() },
             modifier = Modifier.align(Alignment.End)
         ) {
-            Text("Olvido su contraseña?", fontSize = 14.sp)
+            Text("Olvido su contraseña?", fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
         }
 
         ModernButton(
@@ -218,7 +219,7 @@ fun LoginScreen(
             onClick = { onRegisterClick() },
             modifier = Modifier.align(Alignment.CenterHorizontally)
         ) {
-            Text("Crear cuenta", fontSize = 14.sp, color = Color.Blue)
+            Text("Crear cuenta", fontSize = 14.sp, color = MaterialTheme.colorScheme.primary)
         }
 
         Text("ó inicia sesión con", color = Color.Gray, fontSize = 14.sp)
@@ -267,7 +268,7 @@ fun PagerItem(image: Int, title: String, description: String) {
             modifier = Modifier.sizeIn(minHeight = 150.dp, maxHeight = 200.dp)
         )
         Spacer(modifier = Modifier.height(12.dp))
-        Text(text = title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text(text = title, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
         Text(
             text = description,
             fontSize = 14.sp,
@@ -295,6 +296,6 @@ fun SocialButton(icon: Int, text: String, onClick: () -> Unit) {
     ) {
         Image(painter = painterResource(id = icon), contentDescription = null, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(8.dp))
-        Text(text)
+        Text(text, color = MaterialTheme.colorScheme.onBackground)
     }
 }

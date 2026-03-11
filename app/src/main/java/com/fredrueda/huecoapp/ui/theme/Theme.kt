@@ -12,27 +12,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Black,
-    secondary = PurpleGrey80,
-    tertiary = Pink80,
-    onPrimary = Color.Black,      // texto sobre botones amarillos
-    onSecondary = Color.Black,
-    onTertiary = Color.Black,
-    onBackground = Color.Black,   // texto general sobre fondo amarillo
-    onSurface = Color.Black
+    primary = SafetyYellow,
+    onPrimary = Color.Black,
+    background = DarkAsphalt,
+    onBackground = Color.White,
+    surface = AsphaltSurface,
+    onSurface = Color.White,
+    surfaceVariant = Color(0xFF2C2C2C),
+    onSurfaceVariant = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Black,
-    background  = Yellow,
-    secondary = PurpleGrey40,
-    tertiary = Pink40,
-    surface = Yellow,
-    onPrimary = Color.Black,      // texto sobre botones amarillos
-    onSecondary = Color.Black,
-    onTertiary = Color.Black,
-    onBackground = Color.Black,   // texto general sobre fondo amarillo
-    onSurface = Color.Black
+    primary = SafetyYellow,
+    onPrimary = Color.Black,
+    background = RoadLineWhite,
+    onBackground = DarkAsphalt,
+    surface = Color.White,
+    onSurface = DarkAsphalt,
+    surfaceVariant = Color(0xFFEEEEEE),
+    onSurfaceVariant = DarkAsphalt
 )
 
 /**

@@ -22,6 +22,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
@@ -67,7 +68,7 @@ fun MainHomeScreen(
         drawerContent = {
             ModalDrawerSheet(
                 modifier = Modifier.fillMaxWidth(0.75f),
-                drawerContainerColor = Color.White
+                drawerContainerColor = MaterialTheme.colorScheme.surface
             ) {
                 HomeDrawerContent(
                     selectedRoute = selectedRoute
@@ -106,12 +107,13 @@ fun MainHomeScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.White,
-                        titleContentColor = Color.Black
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
             },
-            containerColor = Color(0xFFF7F7F7),
+            containerColor = MaterialTheme.colorScheme.background,
             floatingActionButton = {
                 if (selectedRoute == "home") {
                     ExtendedFloatingActionButton(
@@ -124,8 +126,8 @@ fun MainHomeScreen(
                             )
                         },
                         text = { Text("Reporta aquí") },
-                        containerColor = Color(0xFFFFD000),
-                        contentColor = Color.Black
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 }
 
@@ -149,12 +151,12 @@ fun MainHomeScreen(
 
                             TabRow(
                                 selectedTabIndex = pagerState.currentPage,
-                                containerColor = Color.White,
-                                contentColor = Color.Black,
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                contentColor = MaterialTheme.colorScheme.onSurface,
                                 indicator = { tabPositions ->
                                     TabRowDefaults.Indicator(
                                         modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
-                                        color = Color(0xFFFFD000)
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             ) {
@@ -169,7 +171,7 @@ fun MainHomeScreen(
                                         text = {
                                             Text(
                                                 text = title,
-                                                color = if (pagerState.currentPage == index) Color.Black else Color.Gray
+                                                color = if (pagerState.currentPage == index) MaterialTheme.colorScheme.onSurface else Color.Gray
                                             )
                                         }
                                     )

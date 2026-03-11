@@ -92,8 +92,12 @@ class HuecoDetailViewModel @Inject constructor(
         }
     }
 
-    fun loadComentarios(huecoId: Int, page: Int = 1, pageSize: Int = 10) {
-        if (isLoading || isLastPage) return
+    fun loadComentarios(huecoId: Int, page: Int = 1, pageSize: Int = 10, forceRefresh: Boolean = false) {
+        if (!forceRefresh && (isLoading || (isLastPage && page > 1))) return
+        if (forceRefresh) {
+            isLastPage = false
+            currentPage = 1
+        }
         isLoading = true
         viewModelScope.launch {
             val response = repository.getComentarios(huecoId, page, pageSize)

@@ -40,6 +40,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -55,6 +56,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import coil.compose.AsyncImage
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.ComentarioResponse
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
@@ -79,14 +88,15 @@ fun HuecoDetailScreen(
     val comentarios = viewModel.comentarios.collectAsState().value
     val huecoDetail = viewModel.huecoDetail.collectAsState().value ?: hueco
 
-    // Inicializar ViewModel con el hueco pasado para mantener los comentarios iniciales
+    // Inicializar ViewModel con el hueco pasado y sincronizar
     LaunchedEffect(hueco.id) {
         viewModel.initializeWith(hueco)
-        // Si no tenemos total de comentarios y además no tenemos suficientes comentarios pasados desde
-        // la pantalla anterior (menos de 3), solicitar detalle desde el servidor.
-        val passedCount = hueco.comentarios?.size ?: 0
-        val needsFetch = (hueco.totalComentarios == null) && (passedCount < 3)
-        if (needsFetch) {
+        // Refrescamos SOLO los comentarios (es ligero) para ver si hay novedades de otros usuarios
+        viewModel.loadComentarios(hueco.id)
+        
+        // El detalle completo lo pedimos solo si es estrictamente necesario (falta info)
+        val needsDetailFetch = hueco.totalComentarios == null
+        if (needsDetailFetch) {
             viewModel.loadHuecoDetail(hueco.id)
         }
     }
@@ -118,28 +128,30 @@ fun HuecoDetailScreen(
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         },
-        containerColor = Color.White
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         // Contenido principal desplazable
         Column(
             modifier = Modifier
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             HeaderImageSection(huecoDetail, viewModel)
 
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 // Info principal
                 HuecoInfoSection(huecoDetail)
-                Divider(color = HuecoBackgroundGray, thickness = 1.dp, modifier = Modifier.padding(vertical = 16.dp))
-                ReporterSection(huecoDetail)
-                Divider(color = HuecoBackgroundGray, thickness = 1.dp, modifier = Modifier.padding(vertical = 16.dp))
+                Divider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp, modifier = Modifier.padding(vertical = 16.dp))
                 MiniMapSection(huecoDetail)
+                Divider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp, modifier = Modifier.padding(vertical = 16.dp))
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Mostrar información de depuración si hay datos relevantes (miConfirmacion o faltanValidaciones)
@@ -184,10 +196,13 @@ fun HuecoDetailScreen(
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+                ReporterSection(huecoDetail)
+                Spacer(modifier = Modifier.height(24.dp))
+                
                 val comentariosCount = viewModel.comentariosCount.collectAsState().value
-                // Priorizar el valor que trae el hueco (totalComentarios), si existe
-                val totalKnown = huecoDetail.totalComentarios ?: comentariosCount
-                CommentsSection(comentarios, comentariosCount = totalKnown, onSeeComments = seeComments)
+                // Sincronizar el conteo: Priorizar lo que diga el ViewModel que está más "fresco"
+                CommentsSection(comentarios, comentariosCount = comentariosCount, onSeeComments = seeComments)
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
@@ -306,7 +321,8 @@ fun HuecoInfoSection(hueco: HuecoResponse) {
             Text(
                 text = "Hueco #${hueco.id}",
                 fontSize = 22.sp,
-                fontWeight = FontWeight.ExtraBold
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.Top) {
@@ -319,7 +335,7 @@ fun HuecoInfoSection(hueco: HuecoResponse) {
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = hueco.ciudad ?: "Sin dirección",
-                    color = HuecoTextGray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp,
                     lineHeight = 20.sp
                 )
@@ -327,7 +343,8 @@ fun HuecoInfoSection(hueco: HuecoResponse) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = hueco.descripcion ?: "Sin descripción",
-                fontSize = 16.sp
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
 
@@ -338,22 +355,23 @@ fun HuecoInfoSection(hueco: HuecoResponse) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(50.dp)
+                    .size(64.dp) // Aumentado para que "Medio" quepa bien
                     .border(2.dp, HuecoOrangeScore.copy(alpha = 0.5f), CircleShape)
                     .background(HuecoOrangeScore.copy(alpha = 0.1f), CircleShape)
+                    .padding(4.dp)
             ) {
                 Text(
                     text = hueco.gravedad?.replaceFirstChar { it.uppercase() } ?: "-",
                     color = HuecoOrangeScore,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
+                    fontWeight = FontWeight.Black,
+                    fontSize = 14.sp // Un poco más pequeña para asegurar que no se corte
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "GRAVEDAD",
                 fontSize = 10.sp,
-                color = HuecoTextGray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -384,14 +402,15 @@ fun ReporterSection(hueco: HuecoResponse) {
             Text(
                 text = "Reportado por ${hueco.usuarioNombre ?: "-"}",
                 fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(2.dp))
             val fechaReportShort = formatDateShort(hueco.fechaReporte)
             Text(
                 text = "${if (fechaReportShort.isNotEmpty()) fechaReportShort else "-"} • ${hueco.vistas ?: 0} visualizaciones",
                 fontSize = 12.sp,
-                color = HuecoTextGray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -400,44 +419,64 @@ fun ReporterSection(hueco: HuecoResponse) {
 // 4. Sección del Mini Mapa
 @Composable
 fun MiniMapSection(hueco: HuecoResponse) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(120.dp)
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Placeholder para el mapa. Usar GoogleMap o OSMDroid aquí.
-            Image(
-                painter = painterResource(android.R.drawable.ic_dialog_map), // REEMPLAZAR CON MAPA REAL
-                contentDescription = "Mapa pequeño",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize().background(Color(0xFFDCA795))
-            )
+    if (hueco.latitud == null || hueco.longitud == null) return
 
-            // Marcador central
-            Icon(
-                Icons.Default.LocationOn,
-                contentDescription = null,
-                tint = Color.Black,
-                modifier = Modifier.align(Alignment.Center).size(32.dp)
-            )
+    Column {
+        Text(
+            text = "Ubicación Geográfica",
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                var mapView by remember { mutableStateOf<org.osmdroid.views.MapView?>(null) }
+                val lifecycleOwner = LocalLifecycleOwner.current
 
-            // Botón "Ver Mapa Completo"
-            Button(
-                onClick = { /* TODO: Abrir mapa grande */ },
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(12.dp)
-            ) {
-                Text(
-                    "Ver Mapa Completo",
-                    color = Color.Black,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
+                DisposableEffect(lifecycleOwner) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        when (event) {
+                            Lifecycle.Event.ON_RESUME -> mapView?.onResume()
+                            Lifecycle.Event.ON_PAUSE -> mapView?.onPause()
+                            else -> {}
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(observer)
+                        mapView?.onDetach()
+                    }
+                }
+
+                androidx.compose.ui.viewinterop.AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { ctx ->
+                        org.osmdroid.views.MapView(ctx).apply {
+                            setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
+                            setMultiTouchControls(true)
+                            controller.setZoom(17.5)
+                            val point = org.osmdroid.util.GeoPoint(hueco.latitud!!, hueco.longitud!!)
+                            controller.setCenter(point)
+                            
+                            val marker = org.osmdroid.views.overlay.Marker(this)
+                            marker.position = point
+                            marker.setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_BOTTOM)
+                            marker.icon = androidx.core.content.ContextCompat.getDrawable(ctx, org.osmdroid.library.R.drawable.marker_default)
+                            marker.title = "Hueco #${hueco.id}"
+                            overlays.add(marker)
+                            mapView = this
+                        }
+                    },
+                    update = { view ->
+                        val point = org.osmdroid.util.GeoPoint(hueco.latitud!!, hueco.longitud!!)
+                        view.controller.setCenter(point)
+                    }
                 )
             }
         }
@@ -459,7 +498,8 @@ fun CommentsSection(comentarios: List<ComentarioResponse>, comentariosCount: Int
             Text(
                 text = "Comentarios ($displayCount)",
                 fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
             )
             TextButton(onClick = onSeeComments) {
                 Text("Ver todos", color = HuecoOrangeScore)
@@ -495,13 +535,14 @@ fun CommentItem(authorName: String, timeAgo: String, content: String) {
                 Text(
                     text = authorName,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = timeAgo,
                     fontSize = 12.sp,
-                    color = HuecoTextGray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
@@ -509,7 +550,7 @@ fun CommentItem(authorName: String, timeAgo: String, content: String) {
                 text = content,
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
-                color = Color.DarkGray
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
@@ -530,7 +571,7 @@ fun BottomStatusUpdateSection(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -546,7 +587,8 @@ fun BottomStatusUpdateSection(
         Text(
             text = "¿Conoces el estado actual?",
             fontWeight = FontWeight.Bold,
-            fontSize = 16.sp
+            fontSize = 16.sp,
+            color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(16.dp))
 

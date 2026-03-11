@@ -4,8 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
@@ -25,20 +26,20 @@ fun HomeDrawerContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(vertical = 24.dp)
     ) {
         Text(
             text = "HuecoApp",
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFFFFD000),
+            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .padding(bottom = 24.dp)
         )
 
-        Divider(thickness = 1.dp, color = Color(0xFFE0E0E0))
+        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
         drawerItems.forEach { item ->
             NavigationDrawerItem(
@@ -46,7 +47,8 @@ fun HomeDrawerContent(
                     Text(
                         text = item.title,
                         fontSize = 16.sp,
-                        fontWeight = if (item.route == selectedRoute) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (item.route == selectedRoute) FontWeight.Bold else FontWeight.Normal,
+                        color = if (item.route == selectedRoute) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                     )
                 },
                 selected = item.route == selectedRoute,
@@ -55,9 +57,17 @@ fun HomeDrawerContent(
                     Icon(
                         item.icon,
                         contentDescription = item.title,
-                        tint = if (item.route == selectedRoute) Color(0xFFFFD000) else Color.Black
+                        tint = if (item.route == selectedRoute) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                     )
                 },
+                colors = NavigationDrawerItemDefaults.colors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    unselectedContainerColor = Color.Transparent,
+                    selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurface,
+                    selectedTextColor = MaterialTheme.colorScheme.onPrimary,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurface
+                ),
                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
             )
         }

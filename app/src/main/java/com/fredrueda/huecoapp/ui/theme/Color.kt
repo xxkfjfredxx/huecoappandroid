@@ -4,15 +4,14 @@ import androidx.compose.ui.graphics.Color
 
 /**
  * Paleta de colores de HuecoApp.
- * Yellow para fondos y botones; Black para textos.
+ * Estilo UI/UX de Alerta/Tránsito: Amarillo Seguridad, Asfalto Oscuro.
  */
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+val SafetyYellow = Color(0xFFFFC107)    // Amarillo brillante de alerta
+val DarkAsphalt = Color(0xFF121212)     // Fondo oscuro principal
+val AsphaltSurface = Color(0xFF1E1E1E)  // Tarjetas elevadas oscuras
+val RoadLineWhite = Color(0xFFF5F5F5)   // Blanco hueso para fondos claros
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
-
-val Yellow = Color(0xFFFFD600)
-val Black = Color(0xFF000000)
+// Colores de soporte/estado
+val StatusPending = Color(0xFFFF9800)
+val StatusRepaired = Color(0xFF4CAF50)
+val StatusActive = Color(0xFF2196F3)

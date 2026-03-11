@@ -22,6 +22,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.fredrueda.huecoapp.ui.theme.StatusPending
+import com.fredrueda.huecoapp.ui.theme.StatusActive
+import com.fredrueda.huecoapp.ui.theme.StatusRepaired
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -39,9 +43,9 @@ fun HomeCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 10.dp)
             .clickable { onClick() },
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(6.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
 
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -108,9 +112,10 @@ fun HomeCard(
                             .clip(RoundedCornerShape(50))
                             .background(
                                 when (item.estado) {
-                                    "Pendiente" -> Color(0xFFFFA000)
-                                    "Arreglado" -> Color(0xFF4CAF50)
-                                    else -> Color(0xFF2196F3)
+                                    "Pendiente" -> StatusPending
+                                    "Reparado" -> StatusRepaired
+                                    "Arreglado" -> StatusRepaired
+                                    else -> StatusActive
                                 }
                             )
                             .padding(horizontal = 12.dp, vertical = 4.dp)
@@ -136,14 +141,15 @@ fun HomeCard(
                 Text(
                     text = "Reportado",
                     fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.Black
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Text(
                     text = item.fecha,
                     fontSize = 12.sp,
-                    color = Color.Gray
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

@@ -9,35 +9,27 @@ import android.view.MotionEvent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.fredrueda.huecoapp.R
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
@@ -112,6 +104,23 @@ private fun MapScreenContent(
                     permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
     }
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> mapView?.onResume()
+                Lifecycle.Event.ON_PAUSE -> mapView?.onPause()
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            mapView?.onDetach()
+        }
+    }
+
     if (!LocalInspectionMode.current) {
         LaunchedEffect(Unit) {
             permissionLauncher.launch(
@@ -144,10 +153,15 @@ private fun MapScreenContent(
                 modifier = Modifier.fillMaxSize(),
                 factory = { ctx ->
 
-                    Configuration.getInstance().load(
-                        ctx,
-                        ctx.getSharedPreferences("osm_prefs", Context.MODE_PRIVATE)
-                    )
+                    val config = Configuration.getInstance()
+                    config.load(ctx, ctx.getSharedPreferences("osm_prefs", Context.MODE_PRIVATE))
+                    
+                    // Mejoras de Caché para OSMDroid
+                    config.userAgentValue = ctx.packageName
+                    val tileCacheDir = java.io.File(ctx.cacheDir, "osmdroid/tiles")
+                    config.osmdroidTileCache = tileCacheDir
+                    config.tileFileSystemCacheMaxBytes = 250L * 1024 * 1024 // 250 MB
+                    config.tileFileSystemCacheTrimBytes = 200L * 1024 * 1024 // 200 MB
 
                     MapView(ctx).apply {
                         setTileSource(TileSourceFactory.MAPNIK)
@@ -183,12 +197,39 @@ private fun MapScreenContent(
                         })
                     }
 
-                    // ------- Redibujar marcadores ------- //
-                    val markerMap = mutableMapOf<Int, Marker>() // NUEVO: Mapa de huecoId a Marker
+                    // ------- Redibujar marcadores con CLUSTERING ------- //
+                    val markerMap = mutableMapOf<Int, Marker>()
                     if (state.huecos.isNotEmpty()) {
 
-                        // limpiar marcadores anteriores (pero no overlays del sistema)
-                        view.overlays.removeAll { it is Marker }
+                        // limpiar marcadores anteriores y clusters anteriores
+                        view.overlays.removeAll { it is Marker || it is org.osmdroid.bonuspack.clustering.RadiusMarkerClusterer }
+
+                        // Crear el gestor de agrupamiento de pines
+                        val clusterer = object : org.osmdroid.bonuspack.clustering.RadiusMarkerClusterer(context) {
+                            init {
+                                val drawable = ContextCompat.getDrawable(context, R.drawable.ic_huecoapp)
+                                // Convertimos el Drawable (puede ser Vector) a Bitmap
+                                val clusterIcon = drawable?.let { d ->
+                                    if (d.intrinsicWidth <= 0 || d.intrinsicHeight <= 0) {
+                                        // Prevención de errores con dimensiones inválidas
+                                        android.graphics.Bitmap.createBitmap(1, 1, android.graphics.Bitmap.Config.ARGB_8888)
+                                    } else {
+                                        d.toBitmap(width = 96, height = 96) // Escalamiento manual para clusters
+                                    }
+                                }
+                                
+                                if (clusterIcon != null) {
+                                    setIcon(clusterIcon)
+                                }
+                                mTextAnchorU = 0.70f
+                                mTextAnchorV = 0.27f
+                                mTextPaint.apply {
+                                    color = android.graphics.Color.BLACK
+                                    textSize = 28f
+                                    isFakeBoldText = true
+                                }
+                            }
+                        }
 
                         state.huecos.forEach { hueco ->
                             val lat = hueco.latitud ?: return@forEach
@@ -232,8 +273,11 @@ private fun MapScreenContent(
                                 }
                             }
                             markerMap[hueco.id] = marker // Guardar referencia
-                            view.overlays.add(marker)
+                            clusterer.add(marker) // NUEVO: Añadir al cluster, no a la vista directo
                         }
+                        
+                        // Añadir el cluster completo al mapa
+                        view.overlays.add(clusterer)
 
                         view.invalidate()
                     }

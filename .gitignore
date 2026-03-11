@@ -14,3 +14,6 @@
 .cxx
 local.properties
 android.zip
+app-release.apk
+app-debug.apk
+app-release.aab
