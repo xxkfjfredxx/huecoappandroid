@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Button
@@ -92,7 +93,8 @@ fun HuecoOverlayCardPreview(
         onValidarNoExiste = {},
         onReparado = {},
         onAbierto = {},
-        onCerrado = {}
+        onCerrado = {},
+        onReportar = {}
     )
 }
 
@@ -106,7 +108,8 @@ fun HuecoOverlayCard(
     onValidarNoExiste: () -> Unit,
     onReparado: () -> Unit,
     onAbierto: () -> Unit,
-    onCerrado: () -> Unit
+    onCerrado: () -> Unit,
+    onReportar: () -> Unit
 ) {
     ElevatedCard(
         shape = RoundedCornerShape(20.dp),
@@ -161,9 +164,30 @@ fun HuecoOverlayCard(
                     StatusChip(estadoRaw = hueco.estado)
                 }
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    IconButton(onClick = onClose, modifier = Modifier.size(24.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = MaterialTheme.colorScheme.onSurface)
+                Column(horizontalAlignment = Alignment.End) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Botón de denunciar
+                        IconButton(
+                            onClick = onReportar,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "Denunciar",
+                                tint = Color.Red.copy(alpha = 0.6f)
+                            )
+                        }
+
+                        IconButton(onClick = onClose, modifier = Modifier.size(24.dp)) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Cerrar",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
 
                     Spacer(Modifier.height(8.dp))

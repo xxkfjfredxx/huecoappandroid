@@ -6,5 +6,6 @@ data class ReportUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val success: Boolean = false,
-    val hueco: HuecoResponse? = null
+    val hueco: HuecoResponse? = null,
+    val direccion: String? = null
 )

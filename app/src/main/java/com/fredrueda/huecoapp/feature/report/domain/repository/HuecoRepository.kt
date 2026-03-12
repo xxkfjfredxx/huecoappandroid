@@ -10,6 +10,8 @@ interface HuecoRepository {
     suspend fun crearHueco(
         latitud: Double,
         longitud: Double,
+        userLat: Double?,
+        userLon: Double?,
         descripcion: String,
         imagen: File?
     ): ApiResponse<HuecoResponse>
@@ -31,4 +33,10 @@ interface HuecoRepository {
 
     suspend fun followHueco(huecoId: Int): ApiResponse<Unit>
     suspend fun unfollowHueco(huecoId: Int): ApiResponse<Unit>
+
+    suspend fun reportarHueco(
+        huecoId: Int,
+        motivo: String,
+        comentario: String
+    ): ApiResponse<Unit>
 }

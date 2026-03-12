@@ -22,12 +22,16 @@ class HuecoRepositoryImpl @Inject constructor(
     override suspend fun crearHueco(
         latitud: Double,
         longitud: Double,
+        userLat: Double?,
+        userLon: Double?,
         descripcion: String,
         imagen: File?
     ): ApiResponse<HuecoResponse> {
 
         val latBody = latitud.toString().toRequestBody("text/plain".toMediaType())
         val lonBody = longitud.toString().toRequestBody("text/plain".toMediaType())
+        val uLatBody = userLat?.toString()?.toRequestBody("text/plain".toMediaType())
+        val uLonBody = userLon?.toString()?.toRequestBody("text/plain".toMediaType())
         val descBody = descripcion.toRequestBody("text/plain".toMediaType())
 
         val imgPart = imagen?.let {
@@ -39,17 +43,29 @@ class HuecoRepositoryImpl @Inject constructor(
             val response = api.createHueco(
                 latitud = latBody,
                 longitud = lonBody,
+                userLat = uLatBody,
+                userLon = uLonBody,
                 descripcion = descBody,
                 imagen = imgPart
             )
 
-            ApiResponse.Success(response)
-
-        } catch (e: HttpException) {
-            ApiResponse.HttpError(e.code(), e.message())
+            if (response.isSuccessful) {
+                response.body()?.let { 
+                   ApiResponse.Success(it) 
+                } ?: ApiResponse.HttpError(response.code(), "Respuesta exitosa vacía")
+            } else {
+                val errorBody = response.errorBody()?.string() ?: ""
+                val cleanMessage = errorBody.replace("[", "").replace("]", "").replace("\"", "").trim()
+                ApiResponse.HttpError(
+                    response.code(), 
+                    if (cleanMessage.isNotEmpty()) cleanMessage else "Error en el servidor"
+                )
+            }
 
         } catch (e: IOException) {
             ApiResponse.NetworkError(e)
+        } catch (e: Exception) {
+            ApiResponse.HttpError(500, e.message ?: "Ocurrió un error inesperado")
         }
     }
 
@@ -150,5 +166,26 @@ class HuecoRepositoryImpl @Inject constructor(
         }
     }
 
-
+    override suspend fun reportarHueco(
+        huecoId: Int,
+        motivo: String,
+        comentario: String
+    ): ApiResponse<Unit> {
+        return try {
+            val body = mapOf(
+                "motivo" to motivo,
+                "comentario" to comentario
+            )
+            val response = api.reportarHueco(huecoId, body)
+            if (response.isSuccessful) {
+                ApiResponse.Success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string() ?: ""
+                val cleanMessage = errorBody.replace("[", "").replace("]", "").replace("\"", "").trim()
+                ApiResponse.HttpError(response.code(), cleanMessage.ifEmpty { "Error al reportar" })
+            }
+        } catch (e: Exception) {
+            ApiResponse.NetworkError(e)
+        }
+    }
 }

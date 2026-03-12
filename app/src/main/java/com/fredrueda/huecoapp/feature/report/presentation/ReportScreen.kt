@@ -30,6 +30,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -83,7 +84,8 @@ fun ReportScreen(onBack: () -> Unit) {
 
     // --- Estado UI
     var mapView: MapView? by remember { mutableStateOf(null) }
-    var userLocation by remember { mutableStateOf<GeoPoint?>(null) }
+    var markerLocation by remember { mutableStateOf<GeoPoint?>(null) }
+    var realUserLocation by remember { mutableStateOf<GeoPoint?>(null) }
     var showSheet by remember { mutableStateOf(false) }
     var hasLocationPermission by remember { mutableStateOf(false) }
     var showTooltip by remember { mutableStateOf(true) }
@@ -144,8 +146,9 @@ fun ReportScreen(onBack: () -> Unit) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = Color.Black
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         },
@@ -158,7 +161,7 @@ fun ReportScreen(onBack: () -> Unit) {
             ) {
                 ExtendedFloatingActionButton(
                     onClick = {
-                        if (userLocation == null) {
+                        if (realUserLocation == null) {
                             Toast.makeText(
                                 context,
                                 "Ubicación no detectada todavía",
@@ -172,12 +175,12 @@ fun ReportScreen(onBack: () -> Unit) {
                         Icon(
                             Icons.Default.Add,
                             contentDescription = null,
-                            tint = Color.Black
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     },
                     text = { Text("Reportar") },
-                    containerColor = Color(0xFFFFD000),
-                    contentColor = Color.Black,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.navigationBarsPadding()
                 )
             }
@@ -228,9 +231,11 @@ fun ReportScreen(onBack: () -> Unit) {
                                 }
 
                                 override fun onMarkerDragEnd(marker: Marker?) {
-                                    marker?.let { userLocation = it.position }
+                                    marker?.let {
+                                        markerLocation = it.position
+                                        viewModel.actualizarDireccion(ctx, it.position.latitude, it.position.longitude)
+                                    }
                                     isDraggingMarker = false // 👈 al soltar vuelve visible FAB
-                                    //Toast.makeText(ctx, "Marcador ubicado. Este será el punto del reporte.", Toast.LENGTH_SHORT).show()
                                 }
 
                                 override fun onMarkerDragStart(marker: Marker?) {
@@ -252,11 +257,13 @@ fun ReportScreen(onBack: () -> Unit) {
                                 val loc: GeoPoint? = locationOverlay.myLocation
                                 loc?.let { point ->
                                     post {
-                                        userLocation = point
+                                        realUserLocation = point
+                                        markerLocation = point
                                         controller.setCenter(point)
                                         controller.setZoom(22.0)
                                         marker.position = point
                                         marker.title = "Tu ubicación actual"
+                                        viewModel.actualizarDireccion(ctx, point.latitude, point.longitude)
                                         invalidate()
                                     }
                                 }
@@ -281,13 +288,15 @@ fun ReportScreen(onBack: () -> Unit) {
                                 val loc: GeoPoint? = locationOverlay.myLocation
                                 loc?.let { point ->
                                     map.post {
-                                        userLocation = point
+                                        realUserLocation = point
+                                        markerLocation = point
                                         map.controller.setCenter(point)
                                         map.controller.setZoom(20.0)
                                         map.overlays.filterIsInstance<Marker>()
                                             .firstOrNull()?.let { m ->
                                                 m.position = point
                                             }
+                                        viewModel.actualizarDireccion(context, point.latitude, point.longitude)
                                         map.invalidate()
                                     }
                                 }
@@ -298,12 +307,12 @@ fun ReportScreen(onBack: () -> Unit) {
             )
 
             // --- Tooltip explicativo inicial
-            if (showTooltip && userLocation != null) {
+            if (showTooltip && markerLocation != null) {
                 isDraggingMarker = true
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(Color(0xAA000000))
+                        .background(Color.Black.copy(alpha = 0.7f))
                         .clickable { showTooltip = false }
                 ) {
                     Column(
@@ -313,13 +322,13 @@ fun ReportScreen(onBack: () -> Unit) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Surface(
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             shape = RoundedCornerShape(12.dp),
                             shadowElevation = 8.dp
                         ) {
                             Text(
                                 text = "Mantén presionado el marcador y arrástralo para ubicar el hueco",
-                                color = Color.Black,
                                 modifier = Modifier.padding(16.dp)
                             )
                         }
@@ -332,8 +341,8 @@ fun ReportScreen(onBack: () -> Unit) {
                                 isDraggingMarker = false
                             },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFFFD000),
-                                contentColor = Color.Black
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
                             )
                         ) {
                             Text("OK, entendido")
@@ -347,10 +356,13 @@ fun ReportScreen(onBack: () -> Unit) {
                 ModalBottomSheet(
                     onDismissRequest = { showSheet = false },
                     sheetState = bottomSheetState,
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface
                 ) {
                     ReportFormSheet(
                         onDismiss = { showSheet = false },
+                        direccion = state.direccion,
+                        isLoading = state.isLoading,
                         onSubmit = { description, base64Image ->
 
                             // Convertir Base64 a File (solo si existe)
@@ -364,17 +376,20 @@ fun ReportScreen(onBack: () -> Unit) {
                                 tempFile
                             }
 
-                            // Obtener lat/lon del marcador
-                            val point = userLocation
-                            if (point == null) {
+                            // Obtener lat/lon del marcador (bache) y GPS real (usuario)
+                            val potholePoint = markerLocation
+                            val userPoint = realUserLocation
+                            
+                            if (potholePoint == null || userPoint == null) {
                                 Toast.makeText(context, "Ubicación no detectada todavía", Toast.LENGTH_SHORT).show()
                                 return@ReportFormSheet
                             }
-
-                            // Llamado al ViewModel EXACTO
+                            
                             viewModel.crearHueco(
-                                latitud = point.latitude,
-                                longitud = point.longitude,
+                                latitud = potholePoint.latitude,
+                                longitud = potholePoint.longitude,
+                                userLat = userPoint.latitude,
+                                userLon = userPoint.longitude,
                                 descripcion = description,
                                 imagen = imageFile
                             )
@@ -390,10 +405,10 @@ fun ReportScreen(onBack: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0x88000000)),
+                    .background(Color.Black.copy(alpha = 0.5f)),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = Color.White)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         }
 

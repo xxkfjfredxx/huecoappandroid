@@ -44,6 +44,38 @@ class HuecoDetailViewModel @Inject constructor(
     private val _isConfirming = MutableStateFlow(false)
     val isConfirming: StateFlow<Boolean> = _isConfirming
 
+    private val _isReporting = MutableStateFlow(false)
+    val isReporting: StateFlow<Boolean> = _isReporting
+
+    private val _reportSuccess = MutableStateFlow(false)
+    val reportSuccess: StateFlow<Boolean> = _reportSuccess
+
+    private val _reportError = MutableStateFlow<String?>(null)
+    val reportError: StateFlow<String?> = _reportError
+
+    fun reportarHueco(huecoId: Int, motivo: String, comentario: String) {
+        if (_isReporting.value) return
+        _isReporting.value = true
+        _reportError.value = null
+        _reportSuccess.value = false
+        
+        viewModelScope.launch {
+            when (val res = huecoRepository.reportarHueco(huecoId, motivo, comentario)) {
+                is com.fredrueda.huecoapp.core.data.network.ApiResponse.Success -> {
+                    _reportSuccess.value = true
+                    // Opcional: Marcar localmente como borrado si el backend lo borró (si recibimos 200 con mensaje de borrado)
+                }
+                is com.fredrueda.huecoapp.core.data.network.ApiResponse.HttpError -> {
+                    _reportError.value = res.message ?: "Error al reportar"
+                }
+                is com.fredrueda.huecoapp.core.data.network.ApiResponse.NetworkError -> {
+                    _reportError.value = "Error de conexión"
+                }
+            }
+            _isReporting.value = false
+        }
+    }
+
     fun initializeWith(hueco: HuecoResponse) {
         // Actualizar selección de confirmación siempre con lo que venga al navegar
         _selectedConfirmation.value = hueco.miConfirmacion?.nuevoEstado

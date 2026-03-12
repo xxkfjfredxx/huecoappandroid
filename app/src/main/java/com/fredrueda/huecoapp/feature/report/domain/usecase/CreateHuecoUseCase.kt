@@ -11,11 +11,15 @@ class CreateHuecoUseCase @Inject constructor(
     suspend operator fun invoke(
         latitud: Double,
         longitud: Double,
+        userLat: Double?,
+        userLon: Double?,
         descripcion: String,
         imagen: File?
     ) = repository.crearHueco(
         latitud = latitud,
         longitud = longitud,
+        userLat = userLat,
+        userLon = userLon,
         descripcion = descripcion,
         imagen = imagen
     )

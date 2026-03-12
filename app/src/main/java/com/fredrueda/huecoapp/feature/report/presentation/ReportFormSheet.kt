@@ -18,12 +18,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +53,8 @@ import coil.compose.rememberAsyncImagePainter
 @Composable
 fun ReportFormSheet(
     onDismiss: () -> Unit,
+    direccion: String? = null,
+    isLoading: Boolean = false,
     onSubmit: (String, String?) -> Unit
 ) {
     val context = LocalContext.current
@@ -113,10 +117,21 @@ fun ReportFormSheet(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Text(
-                    "📸 Nuevo reporte de hueco",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
+                Column {
+                    Text(
+                        "📸 Nuevo reporte de hueco",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                    direccion?.let {
+                        Text(
+                            text = "📍 $it",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
             }
 
             // --- Banner informativo si falta permiso ---
@@ -162,10 +177,13 @@ fun ReportFormSheet(
             item {
                 Button(
                     onClick = { showDialog = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD000)),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Seleccionar o tomar imagen", color = Color.Black)
+                    Text("Seleccionar o tomar imagen")
                 }
             }
 
@@ -182,21 +200,40 @@ fun ReportFormSheet(
 
             // --- Enviar ---
             item {
+                val isImageSelected = imageBase64 != null
                 Button(
-                    onClick = { onSubmit(description, imageBase64) },
+                    onClick = { 
+                        if (isImageSelected) {
+                            onSubmit(description, imageBase64)
+                        } else {
+                            Toast.makeText(context, "Debes incluir una foto del hueco", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    enabled = !isLoading && isImageSelected,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD000))
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isImageSelected) MaterialTheme.colorScheme.primary else Color.Gray,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 ) {
-                    Text("Enviar reporte", color = Color.Black, fontWeight = FontWeight.Bold)
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Enviar reporte", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
 
             // --- Cancelar ---
             item {
                 TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                    Text("Cancelar", color = Color.Gray)
+                    Text("Cancelar", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 }
             }
         }

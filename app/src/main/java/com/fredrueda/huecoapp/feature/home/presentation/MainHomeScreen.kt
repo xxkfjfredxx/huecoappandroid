@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.fredrueda.huecoapp.feature.home.data.remote.dto.toHuecoResponse
 import com.fredrueda.huecoapp.feature.map.presentation.MapScreen
+import com.fredrueda.huecoapp.feature.map.presentation.MapViewModel
 import com.fredrueda.huecoapp.feature.profile.presentation.ProfileScreen
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
 import com.fredrueda.huecoapp.ui.components.DrawerWithMapHandling
@@ -56,9 +57,21 @@ fun MainHomeScreen(
     val scope = rememberCoroutineScope()
     var selectedRoute by rememberSaveable { mutableStateOf("home") }
     val homeViewModel: HomeViewModel = hiltViewModel()
+    val mapViewModel: MapViewModel = hiltViewModel() // Scoped to MainHomeScreen
     val homeState by homeViewModel.state.collectAsState()
+
     LaunchedEffect(Unit) {
         homeViewModel.loadInitial()
+    }
+
+    // Refresh data and clean map overlay on route change
+    LaunchedEffect(selectedRoute) {
+        if (selectedRoute == "home") {
+            homeViewModel.refreshSeguidos()
+            homeViewModel.refreshMisReportes()
+        } else if (selectedRoute != "map") {
+            mapViewModel.cerrarOverlay()
+        }
     }
 
     DrawerWithMapHandling(
@@ -221,6 +234,7 @@ fun MainHomeScreen(
 
                     "map" -> MapScreen(
                         onNavigateToDetail = onNavigateToDetail,
+                        viewModel = mapViewModel,
                         modifier = Modifier
                             .padding(innerScaffoldPadding)
                             .fillMaxSize()

@@ -208,7 +208,35 @@ private fun decodeBitmapSafely(file: File): Bitmap {
 }
 
 fun bitmapToBase64(bitmap: Bitmap): String {
-    val out = ByteArrayOutputStream()
-    bitmap.compress(Bitmap.CompressFormat.JPEG, 75, out)
-    return Base64.encodeToString(out.toByteArray(), Base64.DEFAULT)
+    var quality = 70
+    var base64String: String
+    var byteArray: ByteArray
+    var currentBitmap = bitmap
+    
+    do {
+        val out = ByteArrayOutputStream()
+        currentBitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)
+        byteArray = out.toByteArray()
+        base64String = Base64.encodeToString(byteArray, Base64.DEFAULT)
+        
+        // Si sigue pesando más de 200KB (aprox 200,000 bytes)
+        // Reducimos calidad o escalamos si la calidad ya es muy baja
+        if (byteArray.size > 200 * 1024) {
+            if (quality > 20) {
+                quality -= 10
+            } else {
+                // Si la calidad ya es baja (20), escalamos a la mitad
+                val width = currentBitmap.width / 2
+                val height = currentBitmap.height / 2
+                if (width > 0 && height > 0) {
+                    currentBitmap = Bitmap.createScaledBitmap(currentBitmap, width, height, true)
+                    quality = 70 // Reiniciamos calidad para el nuevo tamaño
+                } else {
+                    break // Evitar bucle infinito si es minúsculo
+                }
+            }
+        }
+    } while (byteArray.size > 200 * 1024 && quality >= 10)
+    
+    return base64String
 }

@@ -1,14 +1,21 @@
 package com.fredrueda.huecoapp.feature.map.presentation
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Paint
 import android.util.Log
 import android.view.MotionEvent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -68,7 +75,8 @@ fun MapScreen(
         onValidarHuecoNoExiste = { id -> viewModel.validarHuecoNoExiste(id) },
         onReportarReparado = { id -> viewModel.reportarReparado(id) },
         onReportarAbierto = { id -> viewModel.reportarAbierto(id) },
-        onReportarCerrado = { id -> viewModel.reportarCerrado(id) }
+        onReportarCerrado = { id -> viewModel.reportarCerrado(id) },
+        viewModel = viewModel
     )
 }
 
@@ -93,8 +101,7 @@ private fun MapScreenContent(
     var hasLocationPermission by remember { mutableStateOf(false) }
     var locationInitialized by remember { mutableStateOf(false) }
 
-    // Variable global para guardar el último huecoId a reabrir
-    var lastReopenHuecoId: Int? by remember { mutableStateOf(null) }
+
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -140,8 +147,42 @@ private fun MapScreenContent(
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    // Cerrar el overlay automáticamente cuando salimos de la pantalla del mapa
+    DisposableEffect(Unit) {
+        onDispose {
+            cerrarOverlay()
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val scope = rememberCoroutineScope()
+
+        // --- SECCIÓN: DIALOGO DE DENUNCIA ---
+        var showDenunciaDialog by remember { mutableStateOf(false) }
+
+        LaunchedEffect(state.reportSuccess) {
+            if (state.reportSuccess) {
+                Toast.makeText(context, "Gracias por reportar. El contenido será revisado.", Toast.LENGTH_LONG).show()
+                viewModel.resetReportState()
+                showDenunciaDialog = false
+            }
+        }
+
+        LaunchedEffect(state.reportError) {
+            state.reportError?.let { err ->
+                Toast.makeText(context, err, Toast.LENGTH_LONG).show()
+                viewModel.resetReportState()
+            }
+        }
+
+        if (showDenunciaDialog && state.selectedHueco != null) {
+            com.fredrueda.huecoapp.feature.huecos.presentation.DenunciaDialog(
+                onDismiss = { showDenunciaDialog = false },
+                onConfirm = { motivo, comentario ->
+                    viewModel.reportarHueco(state.selectedHueco.id, motivo, comentario)
+                }
+            )
+        }
 
         if (LocalInspectionMode.current) {
             Box(
@@ -207,26 +248,31 @@ private fun MapScreenContent(
                         // Crear el gestor de agrupamiento de pines
                         val clusterer = object : org.osmdroid.bonuspack.clustering.RadiusMarkerClusterer(context) {
                             init {
-                                val drawable = ContextCompat.getDrawable(context, R.drawable.ic_huecoapp)
-                                // Convertimos el Drawable (puede ser Vector) a Bitmap
-                                val clusterIcon = drawable?.let { d ->
-                                    if (d.intrinsicWidth <= 0 || d.intrinsicHeight <= 0) {
-                                        // Prevención de errores con dimensiones inválidas
-                                        android.graphics.Bitmap.createBitmap(1, 1, android.graphics.Bitmap.Config.ARGB_8888)
-                                    } else {
-                                        d.toBitmap(width = 96, height = 96) // Escalamiento manual para clusters
-                                    }
-                                }
+                                // Design personalizado para el cluster (Circulo con número)
+                                val clusterColor = android.graphics.Color.rgb(255, 152, 0) // Naranja vibrante
+                                val clusterSize = 120
+                                val bitmap = Bitmap.createBitmap(clusterSize, clusterSize, Bitmap.Config.ARGB_8888)
+                                val canvas = Canvas(bitmap)
+                                val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+                                // Dibujar borde blanco
+                                paint.color = android.graphics.Color.WHITE
+                                canvas.drawCircle(clusterSize / 2f, clusterSize / 2f, clusterSize / 2f, paint)
+
+                                // Dibujar fondo naranja
+                                paint.color = clusterColor
+                                canvas.drawCircle(clusterSize / 2f, clusterSize / 2f, clusterSize / 2f * 0.88f, paint)
+
+                                setIcon(bitmap)
+                                // Centrar el texto en el círculo
+                                mTextAnchorU = 0.5f
+                                mTextAnchorV = 0.5f
                                 
-                                if (clusterIcon != null) {
-                                    setIcon(clusterIcon)
-                                }
-                                mTextAnchorU = 0.70f
-                                mTextAnchorV = 0.27f
                                 mTextPaint.apply {
-                                    color = android.graphics.Color.BLACK
-                                    textSize = 28f
+                                    color = android.graphics.Color.WHITE
+                                    textSize = 44f
                                     isFakeBoldText = true
+                                    textAlign = Paint.Align.CENTER
                                 }
                             }
                         }
@@ -236,39 +282,15 @@ private fun MapScreenContent(
                             val lon = hueco.longitud ?: return@forEach
 
                             val marker = Marker(view).apply {
-                                id = hueco.id.toString() // Asigna el id del marker
+                                id = hueco.id.toString()
                                 position = GeoPoint(lat, lon)
                                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                                 title = hueco.descripcion ?: "Hueco #${hueco.id}"
                                 icon = ContextCompat.getDrawable(context, R.drawable.ic_huecoapp)
 
-                                // ---- INFO WINDOW ---- //
-                                infoWindow = HuecoInfoWindow(
-                                    context = context,
-                                    mapView = view,
-                                    onClosed = { cerrarOverlay() },
-                                ) {
-                                    HuecoOverlayCard(
-                                        hueco = hueco,
-                                        onClose = { cerrarOverlay() },
-                                        onToggleSeguir = { viewModel.toggleFollow(hueco.id, hueco.isFollowed == true) },
-                                        onVerDetalle = {
-                                            cerrarOverlay()
-                                            onNavigateToDetail(hueco)
-                                        },
-                                        onValidarSiExiste = { onValidarHuecoExiste(hueco.id) },
-                                        onValidarNoExiste = { onValidarHuecoNoExiste(hueco.id) },
-                                        onReparado = { onReportarReparado(hueco.id) },
-                                        onAbierto = { onReportarAbierto(hueco.id) },
-                                        onCerrado = { onReportarCerrado(hueco.id) }
-                                    )
-                                }
-
                                 setOnMarkerClickListener { m, _ ->
-                                    // Cierra cualquier popup abierto antes de abrir este
-                                    InfoWindow.closeAllInfoWindowsOn(view)
                                     seleccionarHueco(hueco)
-                                    m.showInfoWindow()
+                                    view.controller.animateTo(m.position)
                                     true
                                 }
                             }
@@ -278,135 +300,65 @@ private fun MapScreenContent(
                         
                         // Añadir el cluster completo al mapa
                         view.overlays.add(clusterer)
-
-                        view.invalidate()
                     }
-
-                    // Cerrar InfoWindow si la bandera se activa tras votar
-                    if (state.closeInfoWindow) {
-                        mapView?.let { InfoWindow.closeAllInfoWindowsOn(it) }
-                        // Guardar el huecoId a reabrir
-                        lastReopenHuecoId = state.reopenInfoWindowId
-                    }
-                    viewModel.infoWindowCerrado()
-
-                    // Forzar "parpadeo" visual: reabrir InfoWindow solo del marker correcto
-                    lastReopenHuecoId?.let { huecoId ->
-                        mapView?.let { map ->
-                            val marker = map.overlays.filterIsInstance<Marker>().find {
-                                it.id == huecoId.toString()
-                            }
-                            if (marker != null) {
-                                Log.d("MapScreen", "Reabriendo InfoWindow para marker id=$huecoId")
-                                // Obtener el hueco más reciente desde el state para re-crear el contenido del InfoWindow
-                                val latestHueco = state.huecos.find { it.id == huecoId } ?: state.selectedHueco
-                                InfoWindow.closeAllInfoWindowsOn(map)
-                                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                    // Si tenemos el hueco actualizado, recreamos el infoWindow con su contenido
-                                    if (latestHueco != null) {
-                                        marker.infoWindow = HuecoInfoWindow(
-                                            context = context,
-                                            mapView = map,
-                                            onClosed = { cerrarOverlay() },
-                                        ) {
-                                            HuecoOverlayCard(
-                                                hueco = latestHueco,
-                                                onClose = { cerrarOverlay() },
-                                                onToggleSeguir = { viewModel.toggleFollow(latestHueco.id, latestHueco.isFollowed == true) },
-                                                onVerDetalle = {
-                                                    cerrarOverlay()
-                                                    onNavigateToDetail(latestHueco)
-                                                },
-                                                onValidarSiExiste = { onValidarHuecoExiste(latestHueco.id) },
-                                                onValidarNoExiste = { onValidarHuecoNoExiste(latestHueco.id) },
-                                                onReparado = { onReportarReparado(latestHueco.id) },
-                                                onAbierto = { onReportarAbierto(latestHueco.id) },
-                                                onCerrado = { onReportarCerrado(latestHueco.id) }
-                                            )
-                                        }
-                                    }
-                                    marker.showInfoWindow()
-                                    map.controller.animateTo(marker.position)
-                                    // Forzar re-dibujo para asegurar que el contenido del InfoWindow se actualice
-                                    map.invalidate()
-                                    lastReopenHuecoId = null
-                                    viewModel.limpiarReopenInfoWindow()
-                                }, 700)
-                            } else {
-                                Log.w("MapScreen", "No se encontró marker para id=$huecoId al intentar reabrir InfoWindow")
-                                lastReopenHuecoId = null
-                                viewModel.limpiarReopenInfoWindow()
-                            }
-                        }
-                    }
+                    view.invalidate()
                 }
             )
+        }
 
-            // ------- Botón de ubicación ------- //
-            if (hasLocationPermission) {
-                FloatingActionButton(
-                    onClick = {
-                        mapView?.let { view ->
-                            scope.launch {
-                                enableMyLocation(context, view) { lat, lon ->
-                                    cargarHuecosCercanos(lat, lon)
-                                }
-                            }
-                        }
+        // ------- Overlay de Hueco Seleccionado (Compose nativo) -------
+        AnimatedVisibility(
+            visible = state.selectedHueco != null,
+            enter = slideInVertically(initialOffsetY = { it }),
+            exit = slideOutVertically(targetOffsetY = { it }),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
+        ) {
+            state.selectedHueco?.let { selected ->
+                HuecoOverlayCard(
+                    hueco = selected,
+                    onClose = { cerrarOverlay() },
+                    onToggleSeguir = { viewModel.toggleFollow(selected.id, selected.isFollowed == true) },
+                    onVerDetalle = {
+                        cerrarOverlay()
+                        onNavigateToDetail(selected)
                     },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp)
-                        .navigationBarsPadding(),
-                    containerColor = Color.White
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.MyLocation,
-                        contentDescription = "Ubicación",
-                        tint = Color.Blue
-                    )
-                }
+                    onValidarSiExiste = { onValidarHuecoExiste(selected.id) },
+                    onValidarNoExiste = { onValidarHuecoNoExiste(selected.id) },
+                    onReparado = { onReportarReparado(selected.id) },
+                    onAbierto = { onReportarAbierto(selected.id) },
+                    onCerrado = { onReportarCerrado(selected.id) },
+                    onReportar = { showDenunciaDialog = true }
+                )
             }
         }
-    }
-}
 
-@Composable
-private fun HuecoOverlayCard(
-    hueco: HuecoResponse,
-    onClose: () -> Unit,
-    onToggleSeguir: () -> Unit,
-    onVerDetalle: () -> Unit,
-    viewModel: MapViewModel = hiltViewModel()
-) {
-    // Botón de seguir/dejar de seguir (similar a HuecoDetailScreen)
-    IconButton(
-        onClick = {
-            viewModel.toggleFollow(hueco.id, hueco.isFollowed == true)
-        },
-        modifier = Modifier
-            .padding(8.dp)
-    ) {
-        Icon(
-            imageVector = if (hueco.isFollowed == true) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-            contentDescription = if (hueco.isFollowed == true) "Dejar de seguir" else "Seguir",
-            tint = if (hueco.isFollowed == true) Color.Red else Color.Gray
-        )
-    }
-
-    // Ejemplo de cómo se podría manejar el evento de cerrar el InfoWindow
-    // en el botón de cerrar de la tarjeta del hueco
-    IconButton(
-        onClick = {
-            onClose()
-            viewModel.infoWindowCerrado() // <-- AÑADIDO
-        },
-        modifier = Modifier // Elimino .align(Alignment.TopEnd) para evitar error
-    ) {
-        Icon(
-            imageVector = Icons.Default.Close,
-            contentDescription = "Cerrar"
-        )
+        // ------- Botón de ubicación ------- //
+        if (hasLocationPermission) {
+            FloatingActionButton(
+                onClick = {
+                    mapView?.let { view ->
+                        scope.launch {
+                            enableMyLocation(context, view) { lat, lon ->
+                                cargarHuecosCercanos(lat, lon)
+                            }
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+                    .navigationBarsPadding(),
+                containerColor = Color.White
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.MyLocation,
+                    contentDescription = "Ubicación",
+                    tint = Color.Blue
+                )
+            }
+        }
     }
 }
 

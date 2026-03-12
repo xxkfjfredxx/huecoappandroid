@@ -124,9 +124,7 @@ class MapViewModel @Inject constructor(
                         state.copy(
                             huecos = nuevosHuecosWithConf,
                             selectedHueco = nuevoSeleccionado,
-                            mensaje = "¡Gracias por validar este hueco! 🙌",
-                            closeInfoWindow = true,
-                            reopenInfoWindowId = huecoId // activa reapertura
+                            mensaje = "¡Gracias por validar este hueco! 🙌"
                         )
                     }
                 }
@@ -140,8 +138,7 @@ class MapViewModel @Inject constructor(
                     }
                     if (result.message?.contains("Ya has validado este hueco") == true) {
                         _uiState.value = _uiState.value.copy(
-                            mensaje = "Ya validaste este hueco 👍",
-                            closeInfoWindow = true // también cierra en error conocido
+                            mensaje = "Ya validaste este hueco 👍"
                         )
                     } else {
                         _uiState.value = _uiState.value.copy(
@@ -200,9 +197,7 @@ class MapViewModel @Inject constructor(
                         state.copy(
                             huecos = nuevosHuecosWithConf,
                             selectedHueco = nuevoSeleccionado,
-                            mensaje = "Gracias por tu validación 🙌",
-                            closeInfoWindow = true, // activa bandera para cerrar InfoWindow
-                            reopenInfoWindowId = huecoId // <-- AÑADIDO para reabrir
+                            mensaje = "Gracias por tu validación 🙌"
                         )
                     }
                 }
@@ -215,8 +210,7 @@ class MapViewModel @Inject constructor(
                     }
                     if (result.message?.contains("Ya has validado este hueco") == true) {
                         _uiState.value = _uiState.value.copy(
-                            mensaje = "Ya validaste este hueco 👍",
-                            closeInfoWindow = true
+                            mensaje = "Ya validaste este hueco 👍"
                         )
                     } else {
                         _uiState.value = _uiState.value.copy(
@@ -236,7 +230,7 @@ class MapViewModel @Inject constructor(
     }
 
     fun infoWindowCerrado() {
-        _uiState.value = _uiState.value.copy(closeInfoWindow = false)
+        // Obsoleto
     }
 
     fun limpiarMensaje() {
@@ -266,19 +260,18 @@ class MapViewModel @Inject constructor(
                         }
                         val nuevoSel = nuevosHuecosWithConf.find { it.id == huecoId }
                         Log.d("MapViewModel", "reportarReparado: huecoId=$huecoId nuevoEstado=${conf.nuevoEstado}")
-                        state.copy(huecos = nuevosHuecosWithConf, selectedHueco = nuevoSel, mensaje = "Estado actualizado", closeInfoWindow = true, reopenInfoWindowId = huecoId)
+                        state.copy(huecos = nuevosHuecosWithConf, selectedHueco = nuevoSel, mensaje = "Estado actualizado")
                      }
                 }
                 is ApiResponse.HttpError -> _uiState.value = _uiState.value.copy(mensaje = "Error al actualizar estado")
                 is ApiResponse.NetworkError -> _uiState.value = _uiState.value.copy(mensaje = "Error de red")
             }
-            cerrarOverlay()
         }
     }
 
     fun reportarAbierto(huecoId: Int) {
         viewModelScope.launch {
-            when (val res = huecoRepository.confirmarHueco(huecoId, 6)) { // 6 = En Reparación (según mapping?)
+            when (val res = huecoRepository.confirmarHueco(huecoId, 6)) { // 6 = En Reparación
                 is ApiResponse.Success -> {
                     val conf = res.data
                     _uiState.value = _uiState.value.let { state ->
@@ -296,13 +289,12 @@ class MapViewModel @Inject constructor(
                         }
                         val nuevoSeleccionado = nuevosHuecosWithConf.find { it.id == huecoId }
                         Log.d("MapViewModel", "reportarAbierto: huecoId=$huecoId nuevoEstado=${conf.nuevoEstado}")
-                        state.copy(huecos = nuevosHuecosWithConf, selectedHueco = nuevoSeleccionado, mensaje = "Estado actualizado", closeInfoWindow = true, reopenInfoWindowId = huecoId)
+                        state.copy(huecos = nuevosHuecosWithConf, selectedHueco = nuevoSeleccionado, mensaje = "Estado actualizado")
                     }
                  }
                  is ApiResponse.HttpError -> _uiState.value = _uiState.value.copy(mensaje = "Error al actualizar estado")
                  is ApiResponse.NetworkError -> _uiState.value = _uiState.value.copy(mensaje = "Error de red")
              }
-             cerrarOverlay()
          }
      }
 
@@ -326,13 +318,12 @@ class MapViewModel @Inject constructor(
                         }
                         val nuevoSeleccionado = nuevosHuecosWithConf.find { it.id == huecoId }
                         Log.d("MapViewModel", "reportarCerrado: huecoId=$huecoId nuevoEstado=${conf.nuevoEstado}")
-                        state.copy(huecos = nuevosHuecosWithConf, selectedHueco = nuevoSeleccionado, mensaje = "Estado actualizado", closeInfoWindow = true, reopenInfoWindowId = huecoId)
+                        state.copy(huecos = nuevosHuecosWithConf, selectedHueco = nuevoSeleccionado, mensaje = "Estado actualizado")
                     }
                  }
                  is ApiResponse.HttpError -> _uiState.value = _uiState.value.copy(mensaje = "Error al actualizar estado")
                  is ApiResponse.NetworkError -> _uiState.value = _uiState.value.copy(mensaje = "Error de red")
              }
-             cerrarOverlay()
          }
      }
 
@@ -357,11 +348,9 @@ class MapViewModel @Inject constructor(
     }
 
     fun marcarParaReabrirInfoWindow(huecoId: Int) {
-        _uiState.value = _uiState.value.copy(reopenInfoWindowId = huecoId)
     }
 
     fun limpiarReopenInfoWindow() {
-        _uiState.value = _uiState.value.copy(reopenInfoWindowId = null)
     }
 
     fun toggleFollow(huecoId: Int, isFollowed: Boolean) {
@@ -379,12 +368,46 @@ class MapViewModel @Inject constructor(
                     val nuevoSeleccionado = nuevosHuecos.find { it.id == huecoId }
                     state.copy(
                         huecos = nuevosHuecos,
-                        selectedHueco = nuevoSeleccionado,
-                        closeInfoWindow = true,
-                        reopenInfoWindowId = huecoId
+                        selectedHueco = nuevoSeleccionado
                     )
                 }
             }
         }
+    }
+
+    fun reportarHueco(huecoId: Int, motivo: String, comentario: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isReporting = true, reportError = null, reportSuccess = false)
+            when (val result = huecoRepository.reportarHueco(huecoId, motivo, comentario)) {
+                is ApiResponse.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isReporting = false,
+                        reportSuccess = true,
+                        selectedHueco = null // Cerrar overlay tras reportar exitosamente
+                    )
+                    // Opcional: Recargar huecos para ocultar el que acaba de removerse si fue borrado
+                    // cargarHuecosCercanos(...)
+                }
+                is ApiResponse.HttpError -> {
+                    _uiState.value = _uiState.value.copy(
+                        isReporting = false,
+                        reportError = result.message ?: "Error al reportar"
+                    )
+                }
+                is ApiResponse.NetworkError -> {
+                    _uiState.value = _uiState.value.copy(
+                        isReporting = false,
+                        reportError = "Error de red"
+                    )
+                }
+            }
+        }
+    }
+
+    fun resetReportState() {
+        _uiState.value = _uiState.value.copy(
+            reportSuccess = false,
+            reportError = null
+        )
     }
 }

@@ -21,9 +21,11 @@ interface HuecoApi {
     suspend fun createHueco(
         @Part("latitud") latitud: RequestBody,
         @Part("longitud") longitud: RequestBody,
+        @Part("user_lat") userLat: RequestBody?,
+        @Part("user_lon") userLon: RequestBody?,
         @Part("descripcion") descripcion: RequestBody,
         @Part imagen: MultipartBody.Part?
-    ): HuecoResponse
+    ): Response<HuecoResponse>
 
     @GET("api/v1/huecoscercanos/")
     suspend fun getHuecosCercanos(
@@ -47,4 +49,10 @@ interface HuecoApi {
 
     @POST("api/v1/huecos/{id}/unfollow/")
     suspend fun unfollowHueco(@Path("id") huecoId: Int): Response<Unit>
+
+    @POST("api/v1/huecos/{id}/reportar/")
+    suspend fun reportarHueco(
+        @Path("id") id: Int,
+        @Body body: Map<String, String>
+    ): Response<Map<String, String>>
 }

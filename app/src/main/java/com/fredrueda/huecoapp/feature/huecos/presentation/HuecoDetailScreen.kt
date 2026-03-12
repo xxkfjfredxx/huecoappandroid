@@ -64,9 +64,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.ComentarioResponse
 import com.fredrueda.huecoapp.feature.report.data.remote.dto.HuecoResponse
+import android.widget.Toast
 
 // Definición de colores personalizados basados en el diseño
 val HuecoYellow = Color(0xFFFFC107)
@@ -85,11 +88,32 @@ fun HuecoDetailScreen(
     onSeeComments: () -> Unit,
     viewModel: HuecoDetailViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val comentarios = viewModel.comentarios.collectAsState().value
     val huecoDetail = viewModel.huecoDetail.collectAsState().value ?: hueco
+    var showDenunciaDialog by remember { mutableStateOf(false) }
+    
+    val reportSuccess by viewModel.reportSuccess.collectAsState()
+    val reportError by viewModel.reportError.collectAsState()
+
+    // Manejar resultados de denuncia
+    LaunchedEffect(reportSuccess) {
+        if (reportSuccess) {
+            Toast.makeText(context, "Denuncia enviada. Gracias por tu reporte.", Toast.LENGTH_LONG).show()
+            showDenunciaDialog = false
+            onBackClick() // Opcional: Volver atrás si el contenido fue borrado
+        }
+    }
+
+    LaunchedEffect(reportError) {
+        reportError?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // Inicializar ViewModel con el hueco pasado y sincronizar
     LaunchedEffect(hueco.id) {
+// ...
         viewModel.initializeWith(hueco)
         // Refrescamos SOLO los comentarios (es ligero) para ver si hay novedades de otros usuarios
         viewModel.loadComentarios(hueco.id)
@@ -123,6 +147,9 @@ fun HuecoDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showDenunciaDialog = true }) {
+                        Icon(Icons.Default.Warning, contentDescription = "Reportar", tint = HuecoRed)
+                    }
                     IconButton(onClick = { /* TODO: Handle share click */ }) {
                         Icon(Icons.Default.Share, contentDescription = "Compartir")
                     }
@@ -137,6 +164,14 @@ fun HuecoDetailScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
+        if (showDenunciaDialog) {
+            DenunciaDialog(
+                onDismiss = { showDenunciaDialog = false },
+                onConfirm = { motivo, comentario ->
+                    viewModel.reportarHueco(huecoDetail.id, motivo, comentario)
+                }
+            )
+        }
         // Contenido principal desplazable
         Column(
             modifier = Modifier
